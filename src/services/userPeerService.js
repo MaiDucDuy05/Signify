@@ -69,12 +69,28 @@ const usePeerService = (localVideoRef, remoteVideoRef, sendMessage, partner, use
     const handleSocketMessage = async (data) => {
         switch (data.type) {
             case "offer":
-                const accept = window.confirm(`${data.from} đang gọi cho bạn. Bạn có muốn trả lời không?`);
-                if (accept) {
-                    await startLocalStream();
-                    sendMessage({ type: "accept", from: username, to: data.from });
+            // 🔹 Gửi yêu cầu kiểm tra trạng thái người gọi
+                sendMessage({ type: "checkUser", username: data.from });
+                break;
+
+            case "userStatus":
+                if (data.isConnected) {
+                    const accept = window.confirm(`${data.username} đang gọi cho bạn. Bạn có muốn trả lời không?`);
+                    if (accept) {
+                        await startLocalStream();
+                        sendMessage({ type: "accept", from: username, to: data.username });
+                    }
+                } else {
+                    console.log("📢 Người gọi đã offline, không hiển thị popup.");
                 }
                 break;
+            // case "offer":
+            //     const accept = window.confirm(`${data.from} đang gọi cho bạn. Bạn có muốn trả lời không?`);
+            //     if (accept) {
+            //         await startLocalStream();
+            //         sendMessage({ type: "accept", from: username, to: data.from });
+            //     }
+            //     break;
 
             case "accept":
                 console.log(`${data.from} đã chấp nhận cuộc gọi! Bắt đầu chia sẻ màn hình.`);
@@ -123,6 +139,13 @@ const usePeerService = (localVideoRef, remoteVideoRef, sendMessage, partner, use
                     console.warn("⚠️ ICE Candidate đến sớm, chưa có Remote Description. Lưu lại...");
                     setPendingCandidates(prev => [...prev, data.candidate]);
                 }
+                break;
+
+            case "incomingCall":
+                sendMessage({ type: "acceptCall", username: data.from });
+                break;
+            case "acceptCall":
+                startCall(partner);
                 break;
 
             default:

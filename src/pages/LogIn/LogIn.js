@@ -2,7 +2,9 @@ import classNames from "classnames/bind";
 import styles from "./Login.module.scss";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { saveAuthToken } from "../../token";
+
+import { useAuth } from "../../context/AuthContext";
+// import { saveAuthToken } from "../../token";
 import { users } from "../../db/db";
 
 const cx = classNames.bind(styles);
@@ -13,18 +15,18 @@ function LogIn() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const {login} = useAuth();
 
-  const handleLogin = (e) => {
+const handleLogin = (e) => {
     e.preventDefault();
-
     let userLogin = users.find(user => email === user.email && password === user.password);
 
     if (!userLogin) {
         alert("Sai email hoặc mật khẩu!");
     } else {
-        const token = JSON.stringify({ id: userLogin.id, name: userLogin.name,imgLink:userLogin.imgLink });
-        saveAuthToken(token); 
-        navigate("/dashboard"); 
+        const token = { id: userLogin.id, name: userLogin.name, imgLink: userLogin.imgLink };
+        login (JSON.stringify(token));
+        navigate("/dashboard");
     }
 };
 

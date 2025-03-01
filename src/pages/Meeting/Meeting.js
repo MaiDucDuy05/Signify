@@ -8,48 +8,15 @@ import { TbScreenShare } from "react-icons/tb";
 import { FaPhoneSlash } from "react-icons/fa6";
 import { FiMessageCircle } from "react-icons/fi";
 import { IoSend } from "react-icons/io5";
+import { useSearchParams } from "react-router-dom";
 
 import { getAuthToken } from "../../token";
 import styles from './Meeting.module.scss';
 import { meeting } from "../../db/db";
 import useWebSocketService from "../../services/useWebSocketService";
 import usePeerService from "../../services/userPeerService";
+import { useAuth } from "../../context/AuthContext";
 
-
-// const styles = {
-//     container: {
-//         textAlign: "center",
-//         padding: "20px",
-//         fontFamily: "Arial, sans-serif",
-//     },
-//     input: {
-//         margin: "5px",
-//         padding: "8px",
-//         width: "200px",
-//         border: "1px solid #ccc",
-//         borderRadius: "5px",
-//     },
-//     buttonContainer: {
-//         margin: "10px",
-//     },
-//     callButton: {
-//         backgroundColor: "#4CAF50",
-//         color: "white",
-//         padding: "10px 15px",
-//         marginRight: "5px",
-//         border: "none",
-//         borderRadius: "5px",
-//         cursor: "pointer",
-//     },
-//     endButton: {
-//         backgroundColor: "#e74c3c",
-//         color: "white",
-//         padding: "10px 15px",
-//         border: "none",
-//         borderRadius: "5px",
-//         cursor: "pointer",
-//     },
-// };
 
 
 const cx = classNames.bind(styles);
@@ -57,7 +24,8 @@ const cx = classNames.bind(styles);
 function Metting() {
     const navigate = useNavigate();
     const peopleList = meeting[0]?.users || [];
-    // const messageList = meeting[0]?.mess || [];
+    const [searchParams] = useSearchParams();
+    const inputValue = searchParams.get("data") || "Không có dữ liệu";
 
     const [messageList,setMessageList] = useState(meeting[0]?.mess || [])
 
@@ -65,7 +33,7 @@ function Metting() {
     const [isDetail, setDetail] = useState(0);
 
     const [username, setUsername] = useState("");
-    const [partner, setPartner] = useState("");
+    // const [partner, setPartner] = useState("");
     const [idUser,setIdUser] = useState(0)
     const [callStatus, setCallStatus] = useState("Chưa kết nối");
 
@@ -75,25 +43,17 @@ function Metting() {
     const { socket, sendMessage } = useWebSocketService(username);
     const inputMessageRef = useRef(null);
 
-    // Lấy token và cập nhật username
+    // const [isPartnerOnline, setIsPartnerOnline] = useState(false);
+
+    const { user} = useAuth();
+
+    const partner = searchParams.get("data") || "Không có dữ liệu";
+
     useEffect(() => {
-        const rawToken = getAuthToken();
-        console.log("Token nhận được:", rawToken);
-
-        if (!rawToken) {
-            navigate("/");
-            return;
+        if (user) {
+            setUsername(user.name);
         }
-
-        const token = typeof rawToken === "string" ? JSON.parse(rawToken) : rawToken;
-
-        if (token && token.name) {
-            setUsername(token.name);
-            setIdUser(token?.id)
-        } else {
-            console.error("Token không chứa name:", token);
-        }
-    }, []);
+    }, [user]);
 
 
     const { localStream, startCall, endCall, handleSocketMessage, 
@@ -107,28 +67,26 @@ function Metting() {
     );
 
     useEffect(() => {
-        if (socket) {
-            socket.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
+        if (!socket) return;
+    
+        socket.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === "userStatus") { 
+                    console.log(`🟢 Trạng thái của ${data.username}:`, data.isConnected ? "Online" : "Offline");
+                } else {
                     handleSocketMessage(data);
-                } catch (error) {
-                    console.error("Lỗi phân tích dữ liệu từ WebSocket:", error);
                 }
-            };
-        }
+            } catch (error) {
+                console.error("❌ Lỗi phân tích dữ liệu từ WebSocket:", error);
+            }
+        };
+    
     }, [socket, handleSocketMessage]);
 
-    // Cập nhật partner khi username có giá trị
-    useEffect(() => {
-        if (!username) return;
-        console.log("Username đã cập nhật:", username);
-    
-        const autoPartner = username === "Jone" ? "Mai Duy" : "Jone";
-        setPartner(autoPartner);
-    }, [username]);
 
-    // Chỉ bắt đầu cuộc gọi khi cả username và partner đã có giá trị
+    //Chỉ bắt đầu cuộc gọi khi cả username và partner đã có giá trị
     useEffect(() => {
         if (username && partner) {
             console.log("Bắt đầu cuộc gọi với:", partner);
@@ -148,6 +106,111 @@ function Metting() {
         inputMessageRef.current.value = ""; // Xóa nội dung input sau khi gửi
     };
 
+    // useEffect(() => {
+    //     if (!socket || socket.readyState !== WebSocket.OPEN || !partner) return;
+    //     let interval;
+    
+    //     const checkFriendStatus = () => {
+    //         if (socket.readyState === WebSocket.OPEN) {
+    //             sendMessage({ type: "checkUser", username: partner });
+    //         } else {
+    //             console.log("⚠️ WebSocket bị mất kết nối, dừng kiểm tra.");
+    //             clearInterval(interval);
+    //         }
+    //     };
+    
+    //     const handleUserStatus = (event) => {
+    //         try {
+    //             const data = JSON.parse(event.data);
+    //             if (data.type === "userStatus" && data.username === partner) {
+    //                 console.log(`🟢 Trạng thái của ${data.username}:`, data.isConnected ? "Online" : "Offline");
+    
+    //                 if (data.isConnected) {
+    //                     console.log(`✅ ${data.username} đã online! Dừng kiểm tra.`);
+                        
+    //                     clearInterval(interval);
+    //                     socket.removeEventListener("message", handleUserStatus);
+    //                 }
+    //             }
+    //         } catch (error) {
+    //             console.error("❌ Lỗi phân tích dữ liệu từ WebSocket:", error);
+    //         }
+    //     };
+    
+    //     // Thêm sự kiện lắng nghe
+    //     socket.addEventListener("message", handleUserStatus);
+    
+    //     // Kiểm tra ngay lập tức và sau đó mỗi 2 giây
+    //     checkFriendStatus();
+    //     interval = setInterval(checkFriendStatus, 2000);
+    
+    //     // Cleanup function khi unmount hoặc khi partner/socket thay đổi
+    //     return () => {
+    //         clearInterval(interval);
+    //         socket.removeEventListener("message", handleUserStatus);
+    //     };
+    // }, [socket?.readyState, partner]);
+
+    useEffect(() => {
+        if (!socket || socket.readyState !== WebSocket.OPEN || !partner) return;
+    
+        let interval;
+        let hasSentCallRequest = false;  // Kiểm soát chỉ 1 người gọi
+    
+        const checkFriendStatus = () => {
+            if (socket.readyState === WebSocket.OPEN) {
+                sendMessage({ type: "checkUser", username: partner });
+            } else {
+                console.log("⚠️ WebSocket bị mất kết nối, dừng kiểm tra.");
+                clearInterval(interval);
+            }
+        };
+    
+        const handleUserStatus = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.type === "userStatus" && data.username === partner) {
+                    
+                    if (data.isConnected) {
+                        console.log(`✅ ${data.username} đã online!`);
+    
+                        if (!hasSentCallRequest) {
+                            hasSentCallRequest = true;
+                            console.log("📞 Gửi yêu cầu gọi...");
+                            sendMessage({ type: "callRequest", username: partner });
+                        }
+    
+                        clearInterval(interval);
+                        socket.removeEventListener("message", handleUserStatus);
+                    }
+                } // Xử lý khi nhận cuộc gọi từ đối phương
+                else if (data.type === "incomingCall") {
+                    console.log(`📞 Nhận cuộc gọi từ ${data.from}.`);
+                    // Tự động chấp nhận cuộc gọi (hoặc hiển thị thông báo chấp nhận)
+                    sendMessage({ type: "acceptCall", username: data.from });
+                } 
+                else if (data.type === "acceptCall" && data.username === partner) {
+                    setTimeout(()=>{startCall(partner);},2000)
+                }
+            } catch (error) {
+                console.error("❌ Lỗi phân tích dữ liệu WebSocket:", error);
+            }
+        };
+    
+        socket.addEventListener("message", handleUserStatus);
+    
+        checkFriendStatus();
+        interval = setInterval(checkFriendStatus, 2000);
+    
+        return () => {
+            clearInterval(interval);
+            socket.removeEventListener("message", handleUserStatus);
+        };
+    }, [socket?.readyState, partner]);
+
+
+    
+
 
     return (
         <div className= {cx(styles.wrap)}>
@@ -163,12 +226,12 @@ function Metting() {
                         </li>
 
                 </div>
-                <div className={cx(styles.infoContain,{[styles.disable]:isDetail == 0})}>
+                <div className={cx(styles.infoContain,{[styles.disable]:isDetail === 0})}>
                     <div  className={cx(styles.infoContainBtn)}>
                         <li onClick={() =>{setInFO(1)}} className={cx(styles.infoContainBtnItem)}>People</li>
                         <li  onClick={() =>{setInFO(0)}}  className={cx(styles.infoContainBtnItem)}>Chat</li>
                     </div>
-                    <div className={cx(styles.PeopleContain, {[styles.disable]:isInfo == 0})}>
+                    <div className={cx(styles.PeopleContain, {[styles.disable]:isInfo === 0})}>
                         <ul className={cx(styles.peopleList)}>
                             {
                                 peopleList.map(people =>{
@@ -184,16 +247,16 @@ function Metting() {
                         </ul>
                     </div>
 
-                    <div className={cx(styles.MessContain,{[styles.disable]:isInfo == 1})}>
+                    <div className={cx(styles.MessContain,{[styles.disable]:isInfo === 1})}>
                         <ul className={cx(styles.MessContainList)}>
                             {
                                 messageList.map(item =>{
                                     let user = peopleList.find(users =>{
-                                        return users.id == item.idUser;
+                                        return users.id === item.idUser;
                                     })
                                     return (
                                         <li key={item.id}  
-                                        className={cx(styles.MessContainItem , {[styles.userMainMess]:user.id == 1})}>
+                                        className={cx(styles.MessContainItem , {[styles.userMainMess]:user.id === 1})}>
                                             <label>{user.name}</label>
                                             <p>{item.text}</p>
                                         </li>
@@ -222,21 +285,7 @@ function Metting() {
         </div>
     );
 
-    // return (
-    //     <div style={styles.container}>
-    //         <h2>🖥️ Call WebRTC</h2>
-    //         <div style={styles.buttonContainer}>
-    //             <button onClick={() => startCall(partner)} style={styles.callButton}>
-    //                 📞 Gọi
-    //             </button>
-    //             <button onClick={endCall} style={styles.endButton}>
-    //                 ❌ Kết thúc
-    //             </button>
-    //         </div>
-    //         <p>📡 Trạng thái: {callStatus}</p>
-    //         <VideoComponent localVideoRef={localVideoRef} remoteVideoRef={remoteVideoRef} />
-    //     </div>
-    // );
+
 };
 
 
