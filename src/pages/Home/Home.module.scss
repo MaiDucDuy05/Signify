@@ -1,0 +1,64 @@
+.wrap{
+    width: 100%;
+    background-color: #e0f2fe;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.contain{
+    width: 400px;
+    height: 200px;
+    padding: 10px 0px;
+    display: flex;
+    flex-direction: column;
+    background-color: #fff;
+    border-radius: 3px;
+    align-items: center;
+    justify-content: space-around;
+}
+
+.logo{
+    cursor: pointer;
+    font-size: 3rem;
+    font-weight: 600;
+    display: flex;
+}
+.videoIcon {
+    display: flex;
+    justify-content: center; 
+    align-items: center;
+    margin-right: 5px;
+}
+h4{
+    font-weight: 500;
+    font-size: 2rem;
+}
+.button{
+    width: 80%;
+    display: flex;
+    justify-content: space-around;
+}
+.buttonGetStart{
+    height: 40px;
+    width: 120px;
+    font-size: 1.6rem;
+    font-weight: 600;
+    border-radius: 5px;
+    background-color: var(--text-color);
+}
+
+.buttonLearnMore{
+    height: 40px;
+    width: 120px;
+    font-size: 1.6rem;
+    font-weight: 600;
+    border-radius: 5px;
+    color: var(--text-color);
+    background-color: transparent;
+    border: 2px solid var(--text-color);
+
+    &:hover{
+      background-color: transparent !important;
+    }
+}

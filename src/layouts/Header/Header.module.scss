@@ -1,0 +1,133 @@
+.wrap{
+    width: 100%;
+    height: 60px;
+    justify-items: center;
+    background-color: #fff;
+    position: fixed;
+    z-index: 10;
+}
+.contain{
+    width: 95%;
+    height: 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.containLeft{
+    display: flex;
+    // justify-content: space-between;
+    flex: 2;
+}
+.search{
+    height: 60px;
+    align-items: center;
+    text-align: center;
+    align-content: center;
+    input{
+        background-color: #C8CCD0;
+        height: 40px;
+        width: 400px;
+        border-radius: 8px;
+        padding: 0px 10px 0px 40px;
+        color: #333;
+    }
+    i{
+        font-size: 2.4rem;
+        position: relative;
+        top: 8px;
+        left: 30px;
+        cursor: pointer;
+    }
+}
+.navBar{
+    height: 100%;
+    align-content: center;
+    list-style: none;
+    display: flex;
+    i{
+        font-size: 3rem;
+        height: 30px;
+        cursor: pointer;
+    }
+    li{
+        display: flex;
+        flex-direction: column;
+        padding-top: 5px;
+        width: 80px;
+        align-items: center;
+    }
+
+}
+.logo{
+    cursor: pointer;
+    font-size: 3rem;
+    font-weight: 600;
+    display: flex;
+    height: 60px;
+    line-height: 60px;
+}
+.videoIcon {
+    display: flex;
+    justify-content: center; 
+    align-items: center;
+    margin-right: 5px;
+}
+
+.authentication{
+    display: flex;
+    flex: 1;
+    font-weight: 700;
+    font-size: 1.6rem;
+    color: var(--text-color);
+    position: relative;
+    cursor: pointer;
+    justify-content: flex-end;
+    align-items: center;
+    img{
+        height: 30px;
+        width: 30px;
+        border-radius: 50%;
+        margin-right: 8px;
+        position: relative;
+
+    }
+
+    span{
+        font-weight: 400;
+        font-size: 2rem;
+    }
+}
+
+.logIn{
+    margin-right: 50px;
+    color: var(--text-color);
+}
+.logOut{
+    display: flex;
+    position: absolute;
+    display: block;
+    height: 40px;
+    width: 180px;
+    background-color: aliceblue;
+    right: 0;
+    top: 50px;
+    font-weight: 400;
+    color: rgb(189, 5, 5);
+    font-size: 1.8rem;
+    line-height: 40px;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 0 3px #333;
+    cursor: pointer;
+    i{
+        font-weight: 500;
+        font-size: 2rem;
+        position: relative;
+        top: 4px;
+        margin-left: 8px;
+    }
+}
+
+.disable {
+    display: none;
+}
