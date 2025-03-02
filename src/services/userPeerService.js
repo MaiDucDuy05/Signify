@@ -112,7 +112,14 @@ const usePeerService = (localVideoRef, remoteVideoRef, sendMessage, partner, use
                         console.error("🚨 Lỗi khi thêm ICE Candidate:", error);
                     }
                 });
-                setPendingCandidates([]); // Xóa danh sách sau khi đã thêm
+                setPendingCandidates([]); 
+                setTimeout(()=>{
+                    if(!remoteVideoRef.current.srcObject) {
+                    console.log("call-back")
+                    sendMessage({type: "call-back",from: username, to: partner});     
+                }
+                },100)
+                
                 break;
                 
 
@@ -130,11 +137,13 @@ const usePeerService = (localVideoRef, remoteVideoRef, sendMessage, partner, use
                 break;
 
             case "incomingCall":
-                const accept = window.confirm(`${data.username} đang gọi cho bạn. Bạn có muốn trả lời không?`);
-                    if (accept) {
                         await startLocalStream();
                         sendMessage({ type: "accept", from: username, to: data.username });
-                    }
+                break;
+
+            case "call-back":
+                console.log("checkUser")
+                sendMessage({type: "checkUser",username:partner});
                 break;
 
             default:

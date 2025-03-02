@@ -19,6 +19,7 @@ server.on("connection", (ws) => {
                     break;
 
                 case "offer":
+                case "call-back":
                 case "answer":
                 case "candidate":
                 case "accept": 
