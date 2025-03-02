@@ -68,29 +68,17 @@ const usePeerService = (localVideoRef, remoteVideoRef, sendMessage, partner, use
     // 🔹 Xử lý tin nhắn từ WebSocket
     const handleSocketMessage = async (data) => {
         switch (data.type) {
-            case "offer":
-            // 🔹 Gửi yêu cầu kiểm tra trạng thái người gọi
-                sendMessage({ type: "checkUser", username: data.from });
-                break;
-
             case "userStatus":
                 if (data.isConnected) {
-                    const accept = window.confirm(`${data.username} đang gọi cho bạn. Bạn có muốn trả lời không?`);
-                    if (accept) {
-                        await startLocalStream();
-                        sendMessage({ type: "accept", from: username, to: data.username });
-                    }
+                    sendMessage({
+                        type: "callRequest",
+                        username:data.username
+                    });
+
                 } else {
-                    console.log("📢 Người gọi đã offline, không hiển thị popup.");
+                    console.log(data.username," 📢 Người gọi đã offline, không hiển thị popup.");
                 }
                 break;
-            // case "offer":
-            //     const accept = window.confirm(`${data.from} đang gọi cho bạn. Bạn có muốn trả lời không?`);
-            //     if (accept) {
-            //         await startLocalStream();
-            //         sendMessage({ type: "accept", from: username, to: data.from });
-            //     }
-            //     break;
 
             case "accept":
                 console.log(`${data.from} đã chấp nhận cuộc gọi! Bắt đầu chia sẻ màn hình.`);
@@ -112,20 +100,20 @@ const usePeerService = (localVideoRef, remoteVideoRef, sendMessage, partner, use
                 sendMessage({ type: "answer", answer, to: data.from });
                 break;
 
-                case "answer":
-                    await peerConnection.current.setRemoteDescription(new RTCSessionDescription(data.answer));
-                    console.log("📩 Đã nhận answer!");
+            case "answer":
+                await peerConnection.current.setRemoteDescription(new RTCSessionDescription(data.answer));
+                console.log("📩 Đã nhận answer!");
                 
-                    // ✅ Thêm các ICE Candidate bị pending
-                    pendingCandidates.forEach(async candidate => {
-                        try {
-                            await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
-                        } catch (error) {
-                            console.error("🚨 Lỗi khi thêm ICE Candidate:", error);
-                        }
-                    });
-                    setPendingCandidates([]); // Xóa danh sách sau khi đã thêm
-                    break;
+                // ✅ Thêm các ICE Candidate bị pending
+                pendingCandidates.forEach(async candidate => {
+                    try {
+                        await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
+                    } catch (error) {
+                        console.error("🚨 Lỗi khi thêm ICE Candidate:", error);
+                    }
+                });
+                setPendingCandidates([]); // Xóa danh sách sau khi đã thêm
+                break;
                 
 
             case "candidate":
@@ -142,10 +130,11 @@ const usePeerService = (localVideoRef, remoteVideoRef, sendMessage, partner, use
                 break;
 
             case "incomingCall":
-                sendMessage({ type: "acceptCall", username: data.from });
-                break;
-            case "acceptCall":
-                startCall(partner);
+                const accept = window.confirm(`${data.username} đang gọi cho bạn. Bạn có muốn trả lời không?`);
+                    if (accept) {
+                        await startLocalStream();
+                        sendMessage({ type: "accept", from: username, to: data.username });
+                    }
                 break;
 
             default:
@@ -168,16 +157,33 @@ const usePeerService = (localVideoRef, remoteVideoRef, sendMessage, partner, use
         const offer = await peerConnection.current.createOffer();
         await peerConnection.current.setLocalDescription(offer);
 
-        sendMessage({
-            type: "offer",
-            offer,
-            to: partner,
-        });
 
         console.log("📩 Gửi offer đến", partner);
     };
 
-    // Bat dau chap nhan cuoc goi
+    const loadingCall = async() => {
+        if (!partner) {
+            alert("⚠️ Vui lòng nhập tên người muốn gọi.");
+            return;
+        }
+
+        setCallStatus("Đang gọi... 📞");
+
+        await getMedia();
+        await initializePeerConnection();
+
+        const offer = await peerConnection.current.createOffer();
+        await peerConnection.current.setLocalDescription(offer);
+
+        sendMessage({
+            type: "checkUser",
+            offer,
+            username:partner
+        });
+
+        console.log("📩 Gửi offer đến", partner);
+    }
+
     const startAcceptedCall = async (toUser) => {
         await startLocalStream();
 
@@ -248,7 +254,6 @@ const usePeerService = (localVideoRef, remoteVideoRef, sendMessage, partner, use
 
 
 
-    // 🔹 Kết thúc cuộc gọi
     const endCall = () => {
         if (peerConnection.current) {
             peerConnection.current.close();
@@ -263,16 +268,16 @@ const usePeerService = (localVideoRef, remoteVideoRef, sendMessage, partner, use
         setCallStatus("Cuộc gọi đã kết thúc ❌");
     };
 
-    // Cleanup khi unmount
     useEffect(() => {
         return () => {
+            endCall()
             if (peerConnection.current) {
                 peerConnection.current.close();
             }
         };
     }, []);
 
-    return { localStream, startCall, endCall,handleSocketMessage, toggleCamera, toggleMicrophone,shareScreen };
+    return { localStream, startCall, endCall,handleSocketMessage, toggleCamera, toggleMicrophone,shareScreen,loadingCall};
 };
 
 export default usePeerService;

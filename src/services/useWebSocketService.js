@@ -7,7 +7,7 @@ const useWebSocketService = (username) => {
     useEffect(() => {
         if (!username) return;
 
-        socketRef.current = new WebSocket("wss://436a-58-186-79-9.ngrok-free.app");
+        socketRef.current = new WebSocket("wss://57ac-58-186-79-9.ngrok-free.app");
         setSocket(socketRef.current);
 
         socketRef.current.onopen = () => {

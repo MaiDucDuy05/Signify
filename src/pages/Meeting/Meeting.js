@@ -10,7 +10,6 @@ import { FiMessageCircle } from "react-icons/fi";
 import { IoSend } from "react-icons/io5";
 import { useSearchParams } from "react-router-dom";
 
-import { getAuthToken } from "../../token";
 import styles from './Meeting.module.scss';
 import { meeting } from "../../db/db";
 import useWebSocketService from "../../services/useWebSocketService";
@@ -33,7 +32,6 @@ function Metting() {
     const [isDetail, setDetail] = useState(0);
 
     const [username, setUsername] = useState("");
-    // const [partner, setPartner] = useState("");
     const [idUser,setIdUser] = useState(0)
     const [callStatus, setCallStatus] = useState("Chưa kết nối");
 
@@ -43,7 +41,7 @@ function Metting() {
     const { socket, sendMessage } = useWebSocketService(username);
     const inputMessageRef = useRef(null);
 
-    // const [isPartnerOnline, setIsPartnerOnline] = useState(false);
+
 
     const { user} = useAuth();
 
@@ -57,7 +55,7 @@ function Metting() {
 
 
     const { localStream, startCall, endCall, handleSocketMessage, 
-        toggleCamera, toggleMicrophone,shareScreen } = usePeerService(
+        toggleCamera, toggleMicrophone,shareScreen,loadingCall} = usePeerService(
         localVideoRef,
         remoteVideoRef,
         sendMessage,
@@ -72,12 +70,7 @@ function Metting() {
         socket.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
-                
-                if (data.type === "userStatus") { 
-                    console.log(`🟢 Trạng thái của ${data.username}:`, data.isConnected ? "Online" : "Offline");
-                } else {
-                    handleSocketMessage(data);
-                }
+                handleSocketMessage(data);
             } catch (error) {
                 console.error("❌ Lỗi phân tích dữ liệu từ WebSocket:", error);
             }
@@ -106,56 +99,10 @@ function Metting() {
         inputMessageRef.current.value = ""; // Xóa nội dung input sau khi gửi
     };
 
-    // useEffect(() => {
-    //     if (!socket || socket.readyState !== WebSocket.OPEN || !partner) return;
-    //     let interval;
-    
-    //     const checkFriendStatus = () => {
-    //         if (socket.readyState === WebSocket.OPEN) {
-    //             sendMessage({ type: "checkUser", username: partner });
-    //         } else {
-    //             console.log("⚠️ WebSocket bị mất kết nối, dừng kiểm tra.");
-    //             clearInterval(interval);
-    //         }
-    //     };
-    
-    //     const handleUserStatus = (event) => {
-    //         try {
-    //             const data = JSON.parse(event.data);
-    //             if (data.type === "userStatus" && data.username === partner) {
-    //                 console.log(`🟢 Trạng thái của ${data.username}:`, data.isConnected ? "Online" : "Offline");
-    
-    //                 if (data.isConnected) {
-    //                     console.log(`✅ ${data.username} đã online! Dừng kiểm tra.`);
-                        
-    //                     clearInterval(interval);
-    //                     socket.removeEventListener("message", handleUserStatus);
-    //                 }
-    //             }
-    //         } catch (error) {
-    //             console.error("❌ Lỗi phân tích dữ liệu từ WebSocket:", error);
-    //         }
-    //     };
-    
-    //     // Thêm sự kiện lắng nghe
-    //     socket.addEventListener("message", handleUserStatus);
-    
-    //     // Kiểm tra ngay lập tức và sau đó mỗi 2 giây
-    //     checkFriendStatus();
-    //     interval = setInterval(checkFriendStatus, 2000);
-    
-    //     // Cleanup function khi unmount hoặc khi partner/socket thay đổi
-    //     return () => {
-    //         clearInterval(interval);
-    //         socket.removeEventListener("message", handleUserStatus);
-    //     };
-    // }, [socket?.readyState, partner]);
 
     useEffect(() => {
         if (!socket || socket.readyState !== WebSocket.OPEN || !partner) return;
-    
         let interval;
-        let hasSentCallRequest = false;  // Kiểm soát chỉ 1 người gọi
     
         const checkFriendStatus = () => {
             if (socket.readyState === WebSocket.OPEN) {
@@ -173,25 +120,10 @@ function Metting() {
                     
                     if (data.isConnected) {
                         console.log(`✅ ${data.username} đã online!`);
-    
-                        if (!hasSentCallRequest) {
-                            hasSentCallRequest = true;
-                            console.log("📞 Gửi yêu cầu gọi...");
-                            sendMessage({ type: "callRequest", username: partner });
-                        }
-    
                         clearInterval(interval);
                         socket.removeEventListener("message", handleUserStatus);
                     }
-                } // Xử lý khi nhận cuộc gọi từ đối phương
-                else if (data.type === "incomingCall") {
-                    console.log(`📞 Nhận cuộc gọi từ ${data.from}.`);
-                    // Tự động chấp nhận cuộc gọi (hoặc hiển thị thông báo chấp nhận)
-                    sendMessage({ type: "acceptCall", username: data.from });
                 } 
-                else if (data.type === "acceptCall" && data.username === partner) {
-                    setTimeout(()=>{startCall(partner);},2000)
-                }
             } catch (error) {
                 console.error("❌ Lỗi phân tích dữ liệu WebSocket:", error);
             }
@@ -208,7 +140,6 @@ function Metting() {
         };
     }, [socket?.readyState, partner]);
 
-
     
 
 
@@ -220,9 +151,9 @@ function Metting() {
             </div>
             <div className={cx(styles.contain)}>
                 <div className={cx(styles.videoContain)}>
-                <video className={cx(styles.videoLocal)} ref={remoteVideoRef}autoPlay playsInline/>
+                <video className={cx(styles.videoLocal)} ref={remoteVideoRef}autoPlay playsInline muted/>
                         <li className={cx(styles.videoItem)} >
-                            <video  ref={localVideoRef} autoPlay playsInline  />
+                            <video  ref={localVideoRef} autoPlay playsInline muted  />
                         </li>
 
                 </div>
@@ -279,7 +210,7 @@ function Metting() {
                     <li onClick={() => {shareScreen();}} className={cx(styles.controlIconItem)}><TbScreenShare /></li>
                     <li onClick={() => endCall()} className={cx(styles.controlIconItem)}><FaPhoneSlash /></li>
                     <li onClick={() => {setDetail(1 - isDetail)}} className={cx(styles.controlIconItem)}><FiMessageCircle /></li>
-                    <li onClick={() => startCall(partner)} className={cx(styles.controlIconItem)}><FaVideo /></li>
+                    <li onClick={() => loadingCall(partner)} className={cx(styles.controlIconItem)}><FaVideo /></li>
                 </ul>
             </div>
         </div>

@@ -27,10 +27,6 @@ server.on("connection", (ws) => {
                         users[data.to].send(JSON.stringify({ ...data, from: getUsername(ws) }));
                     }
                     break;
-                // case "checkUser":
-                //     const isConnected = users[data.username] ? true : false;
-                //     ws.send(JSON.stringify({ type: "userStatus", username: data.username, isConnected }));
-                //     break;
                 case "checkUser":
                     const caller = getUsername(ws); // Lấy tên người gọi
                     const isConnected = users[data.username] ? true : false;
@@ -46,20 +42,11 @@ server.on("connection", (ws) => {
                     break;
                 case "callRequest":
                     if (users[data.username]) {
-                        console.log(`📞 ${getUsername(ws)} gửi yêu cầu gọi tới ${data.username}`);
+                        console.log(`📞 ${getUsername(ws)} gửi yêu cầu gọi tới  ${data.username}`);
+                
                         users[data.username].send(JSON.stringify({ 
                             type: "incomingCall", 
-                            from: getUsername(ws) 
-                        }));
-                    }
-                    break;
-
-                case "acceptCall":
-                    if (users[data.username]) {
-                        console.log(`✅ ${getUsername(ws)} chấp nhận cuộc gọi với ${data.username}`);
-                        users[data.username].send(JSON.stringify({ 
-                            type: "acceptCall", 
-                            from: getUsername(ws) 
+                            username: getUsername(ws) 
                         }));
                     }
                     break;
