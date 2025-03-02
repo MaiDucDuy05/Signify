@@ -11,7 +11,7 @@ import { IoSend } from "react-icons/io5";
 import { useSearchParams } from "react-router-dom";
 
 import styles from './Meeting.module.scss';
-import { meeting } from "../../db/db";
+import {users,meeting } from "../../db/db";
 import useWebSocketService from "../../services/useWebSocketService";
 import usePeerService from "../../services/userPeerService";
 import { useAuth } from "../../context/AuthContext";
@@ -40,6 +40,7 @@ function Metting() {
     const [socketData, setSocketData] = useState(null);
     const { socket, sendMessage } = useWebSocketService(username);
     const inputMessageRef = useRef(null);
+    const messagesEndRef = useRef(null);
 
 
 
@@ -53,15 +54,26 @@ function Metting() {
         }
     }, [user]);
 
+    const handleAddMessageToPartner = (context,partner) =>{
+        const messageText = context.trim(); 
+        if (!messageText) return; 
+        const idPartner = users.find((item) => {
+            return item.name === partner
+        }).id
+        const newMessage = { id: messageList.length + 1,idUser: idPartner , text: messageText };
+        setMessageList([...messageList,newMessage]); 
+    }
+
 
     const { localStream, startCall, endCall, handleSocketMessage, 
-        toggleCamera, toggleMicrophone,shareScreen,loadingCall} = usePeerService(
+        toggleCamera, toggleMicrophone,shareScreen} = usePeerService(
         localVideoRef,
         remoteVideoRef,
         sendMessage,
         partner,
         username,
-        setCallStatus
+        setCallStatus,
+        handleAddMessageToPartner
     );
 
     useEffect(() => {
@@ -91,12 +103,13 @@ function Metting() {
     const handleAddMessage = () => {
         const messageText = inputMessageRef.current.value.trim(); // Lấy nội dung nhập vào
         if (!messageText) return; // Kiểm tra nếu input rỗng thì không thêm
-
-
+        const idUser= users.find((item) => {
+            return item.name === username
+        }).id
         const newMessage = { id: messageList.length + 1,idUser: idUser , text: messageText };
-        console.log(messageList[0])
         setMessageList([...messageList,newMessage]); // Thêm vào danh sách
         inputMessageRef.current.value = ""; // Xóa nội dung input sau khi gửi
+        sendMessage({type:"send-message",content:messageText,to:partner})
     };
 
 
@@ -140,6 +153,12 @@ function Metting() {
         };
     }, [socket?.readyState, partner]);
 
+    useEffect(() => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
+        }
+    }, [messageList]);
+
     
 
 
@@ -179,17 +198,17 @@ function Metting() {
                     </div>
 
                     <div className={cx(styles.MessContain,{[styles.disable]:isInfo === 1})}>
-                        <ul className={cx(styles.MessContainList)}>
+                        <ul ref={messagesEndRef} className={cx(styles.MessContainList)}>
                             {
                                 messageList.map(item =>{
                                     let user = peopleList.find(users =>{
                                         return users.id === item.idUser;
                                     })
                                     return (
-                                        <li key={item.id}  
-                                        className={cx(styles.MessContainItem , {[styles.userMainMess]:user.id === 1})}>
-                                            <label>{user.name}</label>
-                                            <p>{item.text}</p>
+                                        <li key={item?.id}  
+                                        className={cx(styles.MessContainItem , {[styles.userMainMess]:user?.name === username})}>
+                                            <label>{user?.name}</label>
+                                            <p>{item?.text}</p>
                                         </li>
                                     )
                                 })
@@ -210,7 +229,7 @@ function Metting() {
                     <li onClick={() => {shareScreen();}} className={cx(styles.controlIconItem)}><TbScreenShare /></li>
                     <li onClick={() => endCall()} className={cx(styles.controlIconItem)}><FaPhoneSlash /></li>
                     <li onClick={() => {setDetail(1 - isDetail)}} className={cx(styles.controlIconItem)}><FiMessageCircle /></li>
-                    <li onClick={() => loadingCall(partner)} className={cx(styles.controlIconItem)}><FaVideo /></li>
+                    {/* <li onClick={() => loadingCall(partner)} className={cx(styles.controlIconItem)}><FaVideo /></li> */}
                 </ul>
             </div>
         </div>

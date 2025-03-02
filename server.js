@@ -17,13 +17,12 @@ server.on("connection", (ws) => {
                     users[data.username] = ws;
                     console.log(`👤 ${data.username} đã đăng ký.`);
                     break;
-
-                case "offer":
                 case "call-back":
                 case "answer":
                 case "candidate":
-                case "accept": 
-                case "final-offer":  
+                case "accept":
+                case "final-offer":
+                case "send-message":  
                     if (users[data.to]) {
                         users[data.to].send(JSON.stringify({ ...data, from: getUsername(ws) }));
                     }
@@ -51,7 +50,6 @@ server.on("connection", (ws) => {
                         }));
                     }
                     break;
-
                 default:
                     console.warn("⚠️ Tin nhắn không xác định:", data);
             }

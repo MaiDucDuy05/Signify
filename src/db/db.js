@@ -129,36 +129,36 @@ const meeting = [
             },
         ],
         mess:[
-            {
-                id:1,
-                idUser:1,
-                text:"Hello",
-            },
-            {
-                id:2,
-                idUser:2,
-                text:"Hi",
-            },
-            {
-                id:3,
-                idUser:3,
-                text:"this is a comment",
-            },
-            {
-                id:4,
-                idUser:1,
-                text:"Verry good",
-            },
-            {
-                id:5,
-                idUser:6,
-                text:"Very good",
-            },
-            {
-                id:6,
-                idUser:10,
-                text:"haha",
-            },
+            // {
+            //     id:1,
+            //     idUser:1,
+            //     text:"Hello",
+            // },
+            // {
+            //     id:2,
+            //     idUser:2,
+            //     text:"Hi",
+            // },
+            // {
+            //     id:3,
+            //     idUser:3,
+            //     text:"this is a comment",
+            // },
+            // {
+            //     id:4,
+            //     idUser:1,
+            //     text:"Verry good",
+            // },
+            // {
+            //     id:5,
+            //     idUser:6,
+            //     text:"Very good",
+            // },
+            // {
+            //     id:6,
+            //     idUser:10,
+            //     text:"haha",
+            // },
         ]
     }
 ]

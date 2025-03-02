@@ -12,7 +12,8 @@ const servers = {
     ]
 };
 
-const usePeerService = (localVideoRef, remoteVideoRef, sendMessage, partner, username, setCallStatus) => {
+const usePeerService = (localVideoRef, remoteVideoRef, sendMessage, 
+    partner, username, setCallStatus,handleAddMessageToPartner) => {
     const [localStream, setLocalStream] = useState(null);
     const peerConnection = useRef(null);
     const [pendingCandidates, setPendingCandidates] = useState([]);
@@ -122,7 +123,6 @@ const usePeerService = (localVideoRef, remoteVideoRef, sendMessage, partner, use
                 
                 break;
                 
-
             case "candidate":
                 if (peerConnection.current && peerConnection.current.remoteDescription) {
                     try {
@@ -142,10 +142,14 @@ const usePeerService = (localVideoRef, remoteVideoRef, sendMessage, partner, use
                 break;
 
             case "call-back":
-                console.log("checkUser")
                 sendMessage({type: "checkUser",username:partner});
                 break;
 
+            case "send-message":
+                handleAddMessageToPartner(data.content,data.from)
+                sendMessage({type:"send-mesage",content:data.content,to:partner});
+                
+            break;
             default:
                 console.warn("⚠️ Tin nhắn không xác định:", data);
         }
@@ -170,28 +174,6 @@ const usePeerService = (localVideoRef, remoteVideoRef, sendMessage, partner, use
         console.log("📩 Gửi offer đến", partner);
     };
 
-    const loadingCall = async() => {
-        if (!partner) {
-            alert("⚠️ Vui lòng nhập tên người muốn gọi.");
-            return;
-        }
-
-        setCallStatus("Đang gọi... 📞");
-
-        await getMedia();
-        await initializePeerConnection();
-
-        const offer = await peerConnection.current.createOffer();
-        await peerConnection.current.setLocalDescription(offer);
-
-        sendMessage({
-            type: "checkUser",
-            offer,
-            username:partner
-        });
-
-        console.log("📩 Gửi offer đến", partner);
-    }
 
     const startAcceptedCall = async (toUser) => {
         await startLocalStream();
@@ -286,7 +268,7 @@ const usePeerService = (localVideoRef, remoteVideoRef, sendMessage, partner, use
         };
     }, []);
 
-    return { localStream, startCall, endCall,handleSocketMessage, toggleCamera, toggleMicrophone,shareScreen,loadingCall};
+    return { localStream, startCall, endCall,handleSocketMessage, toggleCamera, toggleMicrophone,shareScreen};
 };
 
 export default usePeerService;
