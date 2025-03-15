@@ -9,7 +9,7 @@ function NotFoundPage() {
 
 function App() {
     return (
-        <AuthProvider> {/* ✅ Bọc toàn bộ App trong AuthProvider */}
+        <AuthProvider> 
             <Router>
                 <div className="App">
                     <Routes>

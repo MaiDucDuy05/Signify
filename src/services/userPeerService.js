@@ -1,274 +1,378 @@
-// src/hooks/usePeerService.js
+// src/services/userPeerService.js
 import { useState, useRef, useEffect } from "react";
-const servers = {
+
+const ICE_SERVERS = {
     iceServers: [
-        { urls: "stun:stun.l.google.com:19302" },
-        { urls: "stun:stun1.l.google.com:19302" },
-        { 
-            urls: "turn:openrelay.metered.ca:80", 
-            username: "openrelayproject", 
-            credential: "openrelayproject"
+        {
+            urls: [
+                "stun:hk-turn1.xirsys.com",
+                "turn:hk-turn1.xirsys.com:80?transport=udp",
+                "turn:hk-turn1.xirsys.com:3478?transport=udp",
+                "turn:hk-turn1.xirsys.com:80?transport=tcp",
+                "turn:hk-turn1.xirsys.com:3478?transport=tcp",
+                "turns:hk-turn1.xirsys.com:443?transport=tcp",
+                "turns:hk-turn1.xirsys.com:5349?transport=tcp"
+            ],
+            username: "gdHCAhhkSDCb3B0f90BDFAxYlVz1ENseIpafHc0QwwWsjSitYX-0_7QwdTa11iNSAAAAAGfVsV5NYWlEdXk=",
+            credential: "8430c2ae-01be-11f0-869d-0242ac120004"
         }
     ]
 };
 
-const usePeerService = (localVideoRef, remoteVideoRef, sendMessage, 
-    partner, username, setCallStatus,handleAddMessageToPartner) => {
+const usePeerService = (
+    localVideoRef, 
+    remoteVideoRef, 
+    sendMessage, 
+    username,
+    setCallStatus
+) => {
     const [localStream, setLocalStream] = useState(null);
-    const peerConnection = useRef(null);
-    const [pendingCandidates, setPendingCandidates] = useState([]);
+    const [isConnected, setIsConnected] = useState(false);
+    const [isMuted, setIsMuted] = useState(false);
+    const [isVideoEnabled, setIsVideoEnabled] = useState(true);
+    
+    // Refs for managing connections
+    const peerConnections = useRef(new Map());
+    const pendingCandidates = useRef(new Map());
 
-    // 🔹 Lấy camera/micro
+    // Media handling
     const getMedia = async () => {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: true, 
+                audio: true
+            });
             setLocalStream(stream);
             if (localVideoRef.current) {
                 localVideoRef.current.srcObject = stream;
             }
             return stream;
         } catch (error) {
-            console.error("🚨 Lỗi khi lấy media:", error);
+            console.error("❌ Lỗi lấy video từ camera:", error);
+            setCallStatus("Không thể truy cập camera");
+            throw error;
         }
     };
 
-    // 🔹 Khởi tạo kết nối WebRTC
-    const initializePeerConnection = async () => {
-        if (peerConnection.current) {
-            peerConnection.current.close();
-        }
-        peerConnection.current = new RTCPeerConnection(servers);
+    // Khởi tạo kết nối với một người tham gia mới
+    const initializeConnection = async (targetUsername, initiator = false) => {
+        try {
+            console.log(`🔄 Khởi tạo kết nối với ${targetUsername}`);
+            const pc = new RTCPeerConnection(ICE_SERVERS);
+            
+            // Xử lý ICE candidates
+            pc.onicecandidate = (event) => {
+                if (event.candidate) {
+                    console.log("📤 Gửi ICE candidate");
+                    sendMessage({
+                        type: "ice-candidate",
+                        candidate: event.candidate,
+                        target: targetUsername
+                    });
+                } else {
+                    console.log("khong co candidate");
+                }
+            };
 
-        peerConnection.current.onicecandidate = (event) => {
-            if (event.candidate && partner) {
-                sendMessage({ type: "candidate", candidate: event.candidate, to: partner });
+            pc.oniceconnectionstatechange = () => {
+                console.log(`ICE state với ${targetUsername}:`, pc.iceConnectionState);
+                switch (pc.iceConnectionState) {
+                    case "connected":
+                        setCallStatus("Đã kết nối");
+                        setIsConnected(true);
+                        break;
+                    case "disconnected":
+                        setCallStatus("Mất kết nối");
+                        break;
+                    case "failed":
+                        setCallStatus("Kết nối thất bại");
+                        break;
+                    default:
+                        setCallStatus(pc.iceConnectionState);
+                        break;
+                }
+            };
+
+            // Xử lý remote stream
+            pc.ontrack = (event) => {
+                const videoGrid = remoteVideoRef.current;
+                let container = document.getElementById(`container-${targetUsername}`);
+                if (!container) {
+                    container = document.createElement('div');
+                    container.className = 'video-container';
+                    container.id = `container-${targetUsername}`;
+
+                    const videoElement = document.createElement('video');
+                    videoElement.id = `video-${targetUsername}`;
+                    videoElement.autoplay = true;
+                    videoElement.playsInline = true;
+                    videoElement.srcObject = event.streams[0];
+
+                    container.appendChild(videoElement);
+                    videoGrid.appendChild(container);
+                } else {
+                    const videoElement = container.querySelector('video');
+                    if (videoElement) {
+                        videoElement.srcObject = event.streams[0];
+                    }
+                }
+            };
+
+            // Thêm local tracks
+            if (localStream) {
+                localStream.getTracks().forEach(track => {
+                    pc.addTrack(track, localStream);
+                });
             }
-        };
 
-        peerConnection.current.ontrack = (event) => {
-            if (remoteVideoRef.current) {
-                remoteVideoRef.current.srcObject = event.streams[0];
+            peerConnections.current.set(targetUsername, pc);
+
+            // Nếu là người khởi tạo, tạo và gửi offer
+            if (initiator) {
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+                console.log(`📤 Gửi offer tới ${targetUsername}`);
+                sendMessage({
+                    type: "offer",
+                    offer,
+                    target: targetUsername
+                });
             }
-        };
 
-        if (localStream) {
-            localStream.getTracks().forEach(track => {
-                peerConnection.current.addTrack(track, localStream);
-            });
+            return pc;
+        } catch (error) {
+            console.error("❌ Lỗi khởi tạo kết nối:", error);
+            throw error;
         }
     };
 
+    // Xử lý tin nhắn WebSocket
+    const handleSocketMessage = async (data) => {
+        try {
+            switch (data.type) {
+                case "user-joined":
+                    console.log(`👋 ${data.username} đã tham gia`);
+                    if (data.username !== username) {
+                        await initializeConnection(data.username, true);
+                    }
+                    break;
 
-     // 🔹 Bắt đầu stream video cục bộ
-     const startLocalStream = async () => {
+                case "user-left":
+                    console.log(`👋 ${data.username} đã rời đi`);
+                    handleParticipantLeave(data.username);
+                    break;
+
+                case "offer":
+                    console.log(`📥 Nhận offer từ ${data.from}`);
+                    const pc = await initializeConnection(data.from, false);
+                    await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+                    const answer = await pc.createAnswer();
+                    await pc.setLocalDescription(answer);
+                    
+                    console.log(`📤 Gửi answer tới ${data.from}`);
+                    sendMessage({
+                        type: "answer",
+                        answer,
+                        target: data.from
+                    });
+                    break;
+
+                case "answer":
+                    console.log(`📥 Nhận answer từ ${data.from}`);
+                    const answerPc = peerConnections.current.get(data.from);
+                    if (answerPc) {
+                        await answerPc.setRemoteDescription(new RTCSessionDescription(data.answer));
+                        
+                        // Xử lý các candidate đang chờ
+                        const candidates = pendingCandidates.current.get(data.from) || [];
+                        for (const candidate of candidates) {
+                            await answerPc.addIceCandidate(new RTCIceCandidate(candidate));
+                        }
+                        pendingCandidates.current.delete(data.from);
+                    }
+                    break;
+
+                case "ice-candidate":
+                    const candidatePc = peerConnections.current.get(data.from);
+                    if (candidatePc) {
+                        if (candidatePc.remoteDescription && candidatePc.remoteDescription.type) {
+                            await candidatePc.addIceCandidate(new RTCIceCandidate(data.candidate));
+                        } else {
+                            if (!pendingCandidates.current.has(data.from)) {
+                                pendingCandidates.current.set(data.from, []);
+                            }
+                            pendingCandidates.current.get(data.from).push(data.candidate);
+                        }
+                    }
+                    break;
+            }
+        } catch (error) {
+            console.error("❌ Lỗi xử lý tin nhắn:", error);
+            setCallStatus("Lỗi kết nối");
+        }
+    };
+
+    // Xử lý khi người tham gia rời đi
+    const handleParticipantLeave = (participantId) => {
+        const pc = peerConnections.current.get(participantId);
+        if (pc) {
+            pc.close();
+            peerConnections.current.delete(participantId);
+        }
+
+        const container = document.getElementById(`container-${participantId}`);
+        if (container) {
+            container.remove();
+        }
+
+        pendingCandidates.current.delete(participantId);
+    };
+
+    // Kết thúc tất cả cuộc gọi
+    const endCall = () => {
+        try {
+            for (const [participantId, pc] of peerConnections.current.entries()) {
+                pc.close();
+                const container = document.getElementById(`container-${participantId}`);
+                if (container) {
+                    container.remove();
+                }
+            }
+            peerConnections.current.clear();
+            pendingCandidates.current.clear();
+
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                setLocalStream(null);
+            }
+
+            setIsConnected(false);
+            setCallStatus("Đã kết thúc cuộc gọi");
+        } catch (error) {
+            console.error("❌ Lỗi kết thúc cuộc gọi:", error);
+            setCallStatus("Lỗi khi kết thúc cuộc gọi");
+        }
+    };
+
+    const startCall = async () => {
+        sendMessage({
+            type: "join-room",
+            username,
+            roomId: "123"
+        });
+    }
+
+    // Media control functions
+    const toggleCamera = async () => {
         if (!localStream) {
             await getMedia();
-        }
-    };
-
-    // 🔹 Xử lý tin nhắn từ WebSocket
-    const handleSocketMessage = async (data) => {
-        switch (data.type) {
-            case "userStatus":
-                if (data.isConnected) {
-                    sendMessage({
-                        type: "callRequest",
-                        username:data.username
-                    });
-
-                } else {
-                    console.log(data.username," 📢 Người gọi đã offline, không hiển thị popup.");
-                }
-                break;
-
-            case "accept":
-                console.log(`${data.from} đã chấp nhận cuộc gọi! Bắt đầu chia sẻ màn hình.`);
-                startAcceptedCall(data.from);
-                break;
-
-            case "final-offer":
-                await initializePeerConnection();
-                await peerConnection.current.setRemoteDescription(new RTCSessionDescription(data.offer));
-
-                // 🔹 Nếu chưa có localStream, lấy camera/mic
-                if (!localStream) {
-                    const stream = await getMedia();
-                    stream.getTracks().forEach(track => peerConnection.current.addTrack(track, stream));
-                }
-
-                const answer = await peerConnection.current.createAnswer();
-                await peerConnection.current.setLocalDescription(answer);
-                sendMessage({ type: "answer", answer, to: data.from });
-                break;
-
-            case "answer":
-                await peerConnection.current.setRemoteDescription(new RTCSessionDescription(data.answer));
-                console.log("📩 Đã nhận answer!");
-                
-                // ✅ Thêm các ICE Candidate bị pending
-                pendingCandidates.forEach(async candidate => {
-                    try {
-                        await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
-                    } catch (error) {
-                        console.error("🚨 Lỗi khi thêm ICE Candidate:", error);
-                    }
-                });
-                setPendingCandidates([]); 
-                setTimeout(()=>{
-                    if(!remoteVideoRef.current.srcObject) {
-                    console.log("call-back")
-                    sendMessage({type: "call-back",from: username, to: partner});     
-                }
-                },100)
-                
-                break;
-                
-            case "candidate":
-                if (peerConnection.current && peerConnection.current.remoteDescription) {
-                    try {
-                        await peerConnection.current.addIceCandidate(new RTCIceCandidate(data.candidate));
-                    } catch (error) {
-                        console.error("🚨 Lỗi khi thêm ICE Candidate:", error);
-                    }
-                } else {
-                    console.warn("⚠️ ICE Candidate đến sớm, chưa có Remote Description. Lưu lại...");
-                    setPendingCandidates(prev => [...prev, data.candidate]);
-                }
-                break;
-
-            case "incomingCall":
-                        await startLocalStream();
-                        sendMessage({ type: "accept", from: username, to: data.username });
-                break;
-
-            case "call-back":
-                sendMessage({type: "checkUser",username:partner});
-                break;
-
-            case "send-message":
-                handleAddMessageToPartner(data.content,data.from)
-                sendMessage({type:"send-mesage",content:data.content,to:partner});
-                
-            break;
-            default:
-                console.warn("⚠️ Tin nhắn không xác định:", data);
-        }
-    };
-
-    // 🔹 Bắt đầu cuộc gọi (Người 1)
-    const startCall = async () => {
-        if (!partner) {
-            alert("⚠️ Vui lòng nhập tên người muốn gọi.");
+            setIsVideoEnabled(true);
             return;
         }
 
-        setCallStatus("Đang gọi... 📞");
-
-        await getMedia();
-        await initializePeerConnection();
-
-        const offer = await peerConnection.current.createOffer();
-        await peerConnection.current.setLocalDescription(offer);
-
-
-        console.log("📩 Gửi offer đến", partner);
-    };
-
-
-    const startAcceptedCall = async (toUser) => {
-        await startLocalStream();
-
-        const newOffer = await peerConnection.current.createOffer();
-        await peerConnection.current.setLocalDescription(newOffer);
-
-        sendMessage({ type: "final-offer", offer: newOffer, to: toUser });
-    };
-
-    // 🔹 Bật/Tắt Camera
-    const toggleCamera = () => {
-        if (localStream) {
-            const videoTrack = localStream.getVideoTracks()[0];
-            if (videoTrack) {
-                videoTrack.enabled = !videoTrack.enabled;
-            }
+        const videoTrack = localStream.getVideoTracks()[0];
+        if (videoTrack) {
+            videoTrack.enabled = !videoTrack.enabled;
+            setIsVideoEnabled(videoTrack.enabled);
         }
     };
 
-    // 🔹 Bật/Tắt Microphone
     const toggleMicrophone = () => {
         if (localStream) {
             const audioTrack = localStream.getAudioTracks()[0];
             if (audioTrack) {
                 audioTrack.enabled = !audioTrack.enabled;
+                setIsMuted(!audioTrack.enabled);
             }
         }
     };
 
-    // 🔹 Chia sẻ màn hình
     const shareScreen = async () => {
         try {
-            const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+            const screenStream = await navigator.mediaDevices.getDisplayMedia({ 
+                video: true 
+            });
+            
             const screenTrack = screenStream.getVideoTracks()[0];
 
             if (localVideoRef.current) {
                 localVideoRef.current.srcObject = screenStream;
             }
 
-            if (peerConnection.current) {
-                // Thay thế video track hiện tại bằng screen track
-                const sender = peerConnection.current.getSenders().find(s => s.track.kind === "video");
+            // Thay thế video track trong tất cả peer connections
+            for (const pc of peerConnections.current.values()) {
+                const sender = pc.getSenders().find(s => s.track?.kind === "video");
                 if (sender) {
-                    sender.replaceTrack(screenTrack);
+                    await sender.replaceTrack(screenTrack);
                 }
             }
 
             screenTrack.onended = () => {
-                revertToCamera(); // Khi tắt chia sẻ màn hình, quay lại camera
+                revertToCamera();
             };
         } catch (error) {
-            console.error("🚨 Lỗi khi chia sẻ màn hình:", error);
+            console.error("❌ Lỗi chia sẻ màn hình:", error);
+            setCallStatus("Không thể chia sẻ màn hình");
         }
     };
 
-    // 🔹 Chuyển về camera sau khi tắt chia sẻ màn hình
     const revertToCamera = async () => {
-        const cameraStream = await getMedia();
-        const cameraTrack = cameraStream.getVideoTracks()[0];
+        try {
+            const cameraStream = await getMedia();
+            const cameraTrack = cameraStream.getVideoTracks()[0];
 
-        if (peerConnection.current) {
-            const sender = peerConnection.current.getSenders().find(s => s.track.kind === "video");
-            if (sender) {
-                sender.replaceTrack(cameraTrack);
+            for (const pc of peerConnections.current.values()) {
+                const sender = pc.getSenders().find(s => s.track?.kind === "video");
+                if (sender) {
+                    await sender.replaceTrack(cameraTrack);
+                }
             }
+        } catch (error) {
+            console.error("❌ Lỗi chuyển về camera:", error);
         }
     };
 
 
-
-    const endCall = () => {
-        if (peerConnection.current) {
-            peerConnection.current.close();
-            peerConnection.current = null;
-        }
-        if (localStream) {
-            localStream.getTracks().forEach(track => track.stop());
-        }
-        if (remoteVideoRef.current) {
-            remoteVideoRef.current.srcObject = null;
-        }
-        setCallStatus("Cuộc gọi đã kết thúc ❌");
-    };
-
+    // Cleanup khi component unmount
     useEffect(() => {
         return () => {
-            endCall()
-            if (peerConnection.current) {
-                peerConnection.current.close();
-            }
+            endCall();
         };
     }, []);
 
-    return { localStream, startCall, endCall,handleSocketMessage, toggleCamera, toggleMicrophone,shareScreen};
+    // Khởi tạo media khi component mount
+    useEffect(() => {
+        if (!localStream) {
+            getMedia().catch(console.error);
+        }
+    }, []);
+
+    // Lắng nghe tin nhắn WebSocket
+    // useEffect(() => {
+    //     const handleWebSocketMessage = (event) => {
+    //         handleSocketMessage(event.detail);
+    //     };
+
+    //     window.addEventListener('websocket-message', handleWebSocketMessage);
+    //     return () => {
+    //         window.removeEventListener('websocket-message', handleWebSocketMessage);
+    //     };
+    // }, []);
+
+    
+
+    return {
+        localStream,
+        isConnected,
+        isMuted,
+        isVideoEnabled,
+        toggleCamera,
+        toggleMicrophone,
+        shareScreen,
+        endCall,
+        startCall,
+        handleSocketMessage
+    };
 };
 
 export default usePeerService;

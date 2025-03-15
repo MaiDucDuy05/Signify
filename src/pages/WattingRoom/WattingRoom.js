@@ -19,7 +19,7 @@ function WattingRoom() {
             return;
         }
         setError("");
-        navigate(`/meeting?data=${encodeURIComponent(inputValue)}`);
+        navigate(`/meeting?room=${encodeURIComponent(inputValue)}`);
     };
    
     return (
