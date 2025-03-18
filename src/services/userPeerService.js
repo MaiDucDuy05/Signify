@@ -54,7 +54,7 @@ const usePeerService = (
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: true, 
-                // audio: true
+                audio: true
             });
             setLocalStream(stream);
             if (localVideoRef.current) {
