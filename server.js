@@ -75,7 +75,6 @@ server.on("connection", (ws) => {
                     
                     // Kiểm tra xem username đã tồn tại trong phòng chưa
                     if (room.has(username)) {
-                        handleError(ws, null, "Tên người dùng đã tồn tại trong phòng");
                         return;
                     }
 

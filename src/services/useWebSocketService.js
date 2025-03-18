@@ -3,7 +3,7 @@ import { useRef, useEffect, useState } from "react";
 const WEBSOCKET_URL = 
 // window.location.hostname === 'localhost' 
 //     ? "ws://localhost:4000": 
-"wss://b320-42-113-163-1.ngrok-free.app"; // URL của WebSocket server
+"wss://a270-123-30-177-118.ngrok-free.app"; // URL của WebSocket server
 
 const useWebSocketService = (roomId, username) => {
 
@@ -60,11 +60,6 @@ const useWebSocketService = (roomId, username) => {
                     });
                 }
                 , 1000);
-                // sendMessage({
-                //     type: "join-room",
-                //     username,
-                //     roomId
-                // });
 
             };
 

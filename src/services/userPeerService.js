@@ -2,21 +2,35 @@
 import { useState, useRef, useEffect } from "react";
 
 const ICE_SERVERS = {
+    // iceServers: [
+    //     {
+    //         urls: [
+    //             'stun:stun.l.google.com:19302',
+    //             'stun:stun1.l.google.com:19302',
+    //             "stun:hk-turn1.xirsys.com",
+    //             "turn:hk-turn1.xirsys.com:80?transport=udp",
+    //             "turn:hk-turn1.xirsys.com:3478?transport=udp",
+    //             "turn:hk-turn1.xirsys.com:80?transport=tcp",
+    //             "turn:hk-turn1.xirsys.com:3478?transport=tcp",
+    //             "turns:hk-turn1.xirsys.com:443?transport=tcp",
+    //             "turns:hk-turn1.xirsys.com:5349?transport=tcp"
+    //         ],
+    //         username: "gdHCAhhkSDCb3B0f90BDFAxYlVz1ENseIpafHc0QwwWsjSitYX-0_7QwdTa11iNSAAAAAGfVsV5NYWlEdXk=",
+    //         credential: "8430c2ae-01be-11f0-869d-0242ac120004"
+    //     },
+    // ]
     iceServers: [
         {
-            urls: [
-                "stun:hk-turn1.xirsys.com",
-                "turn:hk-turn1.xirsys.com:80?transport=udp",
-                "turn:hk-turn1.xirsys.com:3478?transport=udp",
-                "turn:hk-turn1.xirsys.com:80?transport=tcp",
-                "turn:hk-turn1.xirsys.com:3478?transport=tcp",
-                "turns:hk-turn1.xirsys.com:443?transport=tcp",
-                "turns:hk-turn1.xirsys.com:5349?transport=tcp"
-            ],
-            username: "gdHCAhhkSDCb3B0f90BDFAxYlVz1ENseIpafHc0QwwWsjSitYX-0_7QwdTa11iNSAAAAAGfVsV5NYWlEdXk=",
-            credential: "8430c2ae-01be-11f0-869d-0242ac120004"
+          urls: [
+            'stun:openrelay.metered.ca:80',
+            'turn:openrelay.metered.ca:80',
+            'turn:openrelay.metered.ca:443',
+            'turn:openrelay.metered.ca:443?transport=tcp'
+          ],
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
         }
-    ]
+      ]
 };
 
 const usePeerService = (
@@ -40,7 +54,7 @@ const usePeerService = (
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: true, 
-                audio: true
+                // audio: true
             });
             setLocalStream(stream);
             if (localVideoRef.current) {
@@ -243,6 +257,7 @@ const usePeerService = (
 
             if (localStream) {
                 localStream.getTracks().forEach(track => track.stop());
+                localStream.getTracks().forEach(track => localStream.removeTrack(track));
                 setLocalStream(null);
             }
 
@@ -253,14 +268,6 @@ const usePeerService = (
             setCallStatus("Lỗi khi kết thúc cuộc gọi");
         }
     };
-
-    const startCall = async () => {
-        sendMessage({
-            type: "join-room",
-            username,
-            roomId: "123"
-        });
-    }
 
     // Media control functions
     const toggleCamera = async () => {
@@ -346,19 +353,6 @@ const usePeerService = (
             getMedia().catch(console.error);
         }
     }, []);
-
-    // Lắng nghe tin nhắn WebSocket
-    // useEffect(() => {
-    //     const handleWebSocketMessage = (event) => {
-    //         handleSocketMessage(event.detail);
-    //     };
-
-    //     window.addEventListener('websocket-message', handleWebSocketMessage);
-    //     return () => {
-    //         window.removeEventListener('websocket-message', handleWebSocketMessage);
-    //     };
-    // }, []);
-
     
 
     return {
@@ -370,7 +364,6 @@ const usePeerService = (
         toggleMicrophone,
         shareScreen,
         endCall,
-        startCall,
         handleSocketMessage
     };
 };

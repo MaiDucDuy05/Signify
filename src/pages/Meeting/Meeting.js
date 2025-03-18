@@ -1,4 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useSearchParams } from "react-router-dom";
 import classNames from 'classnames/bind';
 import { 
@@ -56,7 +58,6 @@ const Meeting = () => {
         toggleMicrophone,
         shareScreen,
         endCall,
-        startCall,
         handleSocketMessage
     } = usePeerService(
         localVideoRef,
@@ -111,20 +112,6 @@ const Meeting = () => {
         );
     };
 
-    // WebSocket message handling
-    // useEffect(() => {
-    //     const handleWebSocketMessage = (event) => {
-    //         const data = event.detail;
-    //         if (data.type === "chat-message") {
-    //             setMessages(prev => [...prev, data]);
-    //         } else {
-
-    //         }
-    //     };
-
-    //     window.addEventListener('websocket-message', handleWebSocketMessage);
-    //     return () => window.removeEventListener('websocket-message', handleWebSocketMessage);
-    // }, []);
 
     useEffect(() => {
         if (!socket) return;
@@ -255,9 +242,9 @@ const Meeting = () => {
                         <TbScreenShare />
                     </li>
                     <li
-                        onClick={startCall}
+                        onClick={endCall}
                         className={cx(styles.controlIconItem, styles.endCall)}>
-                        <FaPhoneSlash />
+                        <Link to='/waiting-room'><FaPhoneSlash /></Link> 
                     </li>
                     <li
                         onClick={() => setShowSidebar(!showSidebar)}
