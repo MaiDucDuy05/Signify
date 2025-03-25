@@ -1,5 +1,5 @@
 import http from 'http';
-import { app } from './app.js';
+import app  from './app.js';
 import { initWebSocket } from './websocket.js';
 import { initDB } from './postgres/index.js';
 
