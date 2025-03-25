@@ -1,11 +1,21 @@
-const WebSocket = require("ws");
+import { WebSocketServer } from "ws";
+import { initDB, User, Meeting, MeetingUser, Message } from "./src/postgres/index.js";
+
+
+
+
+// Khởi tạo kết nối database
+(async () => {
+    await initDB();
+    console.log("Database initialized");
+})();
 
 // Lắng nghe trên 0.0.0.0 để chấp nhận kết nối từ bất kỳ IP nào
-const server = new WebSocket.Server({ host: "0.0.0.0", port: 4000 });
+const server = new WebSocketServer({ host: "0.0.0.0", port: 4000 });
 
 // Cấu trúc lưu trữ thông tin phòng và người dùng
-const rooms = new Map(); // Map<roomId, Map<username, WebSocket>>
-const clients = new Map(); // Map<WebSocket, {username, roomId}>
+const meetings = new Map(); // Map<meetingId, Map<username, WebSocket>>
+const clients = new Map(); // Map<WebSocket, {username, meetingId}>
 
 function handleError(ws, error, message) {
     console.error(`❌ ${message}:`, error);
@@ -15,119 +25,134 @@ function handleError(ws, error, message) {
     }));
 }
 
-function broadcastToRoom(roomId, message, exclude = null) {
-    if (!rooms.has(roomId)) return;
-    const room = rooms.get(roomId);
-    room.forEach((clientWs, clientUsername) => {
+function broadcastToMeeting(meetingId, message, exclude = null) {
+    if (!meetings.has(meetingId)) return;
+    meetings.get(meetingId).forEach((clientWs, clientUsername) => {
         if (clientWs !== exclude && clientWs.readyState === WebSocket.OPEN) {
             clientWs.send(JSON.stringify(message));
         }
     });
 }
 
-function getRoomParticipants(roomId) {
-    if (!rooms.has(roomId)) return [];
-    return Array.from(rooms.get(roomId).keys());
-}
 
-function leaveRoom(ws) {
+async function leaveMeeting(ws) {
     const clientInfo = clients.get(ws);
     if (!clientInfo) return;
 
-    const { username, roomId } = clientInfo;
-    if (!rooms.has(roomId)) return;
+    const { username, meetingId } = clientInfo;
+    if (!meetings.has(meetingId)) return;
 
-    const room = rooms.get(roomId);
-    room.delete(username);
+    const meeting = meetings.get(meetingId);
+    meeting.delete(username);
 
-    // Thông báo cho những người còn lại trong phòng
-    broadcastToRoom(roomId, {
-        type: "user-left",
-        username,
-        participants: getRoomParticipants(roomId)
-    });
-
-    // Xóa phòng nếu không còn ai
-    if (room.size === 0) {
-        rooms.delete(roomId);
+    const user = await User.findOne({ where: { name: username } });
+    if (user) {
+        await MeetingUser.update({ leavedAt: new Date() }, { 
+            where: { userId: user.id, meetingId }
+        });
     }
 
+    broadcastToMeeting(meetingId, { type: "user-left", username });
+
+    if (meeting.size === 0) meetings.delete(meetingId);
+
     clients.delete(ws);
-    console.log(`👋 ${username} đã rời phòng ${roomId}`);
+    console.log(`👋 ${username} đã rời cuộc họp ${meetingId}`);
 }
 
 server.on("connection", (ws) => {
     console.log("🔌 Có kết nối mới");
 
-    ws.on("message", (message) => {
+    ws.on("message", async (message) => {
         try {
             const data = JSON.parse(message);
+
             switch (data.type) {
                 case "join-room": {
-                    const { username, roomId } = data;
+                    const { username, meetingId } = data;
                     
                     // Tạo phòng mới nếu chưa tồn tại
-                    if (!rooms.has(roomId)) {
-                        rooms.set(roomId, new Map());
-                    }
-                    
-                    const room = rooms.get(roomId);
+                    if (!meetings.has(meetingId)) meetings.set(meetingId, new Map());
+                    const meeting = meetings.get(meetingId);
                     
                     // Kiểm tra xem username đã tồn tại trong phòng chưa
-                    if (room.has(username)) {
-                        return;
-                    }
+                    if (meeting.has(username)) return;
 
                     // Thêm người dùng vào phòng
-                    room.set(username, ws);
-                    clients.set(ws, { username, roomId });
+                    meeting.set(username, ws);
+                    clients.set(ws, { username, meetingId });
+
+                    let meetingRecord = await Meeting.findByPk(meetingId);
+                    if (!meetingRecord) {
+                        meetingRecord = await Meeting.create({ id: meetingId, status: "active" });
+                    }
+
+                    let userRecord = await User.findOne({ where: { name: username } });
+                    if (!userRecord) {
+                        userRecord = await User.create({ name: username });
+                    }
+
+                    await MeetingUser.create({
+                        userId: userRecord.id,
+                        meetingId: meetingId,
+                        joinedAt: new Date(),
+                    });
 
                     // Gửi danh sách người trong phòng cho người mới
                     ws.send(JSON.stringify({
-                        type: "room-info",
-                        participants: getRoomParticipants(roomId)
+                        type: "meeting-info",
+                        participants: Array.from(meeting.keys()),
                     }));
 
                     // Thông báo cho mọi người về người mới
-                    broadcastToRoom(roomId, {
+                    broadcastToMeeting(meetingId, {
                         type: "user-joined",
                         username,
-                        participants: getRoomParticipants(roomId)
+                        participants: Array.from(meeting.keys()),
                     }, ws);
 
-                    console.log(`✅ ${username} đã vào phòng ${roomId}`);
+                    console.log(`✅ ${username} đã vào cuộc họp ${meetingId}`);
                     break;
                 }
 
                 case "offer":
                 case "answer":
-                case "ice-candidate": {
-                    const clientInfo = clients.get(ws);
-                    if (!clientInfo) return;
-
-                    const { roomId } = clientInfo;
-                    const room = rooms.get(roomId);
-                    if (!room || !data.target) return;
-
-                    const targetWs = room.get(data.target);
-                    if (targetWs && targetWs.readyState === WebSocket.OPEN) {
-                        targetWs.send(JSON.stringify({
-                            ...data,
-                            from: clientInfo.username
-                        }));
+                    case "ice-candidate": {
+                        const clientInfo = clients.get(ws);
+                        if (!clientInfo) return;
+                    
+                        const { meetingId } = clientInfo;
+                        const meeting = meetings.get(meetingId);
+                        if (!meeting || !data.target) return;
+                    
+                        const targetWs = meeting.get(data.target);
+                        if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+                            targetWs.send(JSON.stringify({
+                                ...data,
+                                from: clientInfo.username
+                            }));
+                        }
+                        break;
                     }
-                    break;
-                }
+                    
 
                 case "chat-message": {
                     const clientInfo = clients.get(ws);
                     if (!clientInfo) return;
 
-                    broadcastToRoom(clientInfo.roomId, {
-                        type: "chat-message",
-                        from: clientInfo.username,
+                    const { username, meetingId } = clientInfo;
+
+                    await Message.create({
+                        userId: (await User.findOne({ where: { name: username } })).id,
+                        meetingId: meetingId,
                         message: data.message,
-                        timestamp: Date.now()
+                    });
+
+                    broadcastToMeeting(meetingId, {
+                        type: "chat-message",
+                        from: username,
+                        message: data.message,
+                        timestamp: Date.now(),
                     });
                     break;
                 }
@@ -137,14 +162,8 @@ server.on("connection", (ws) => {
         }
     });
 
-    ws.on("close", () => {
-        leaveRoom(ws);
-    });
-
-    ws.on("error", (error) => {
-        handleError(ws, error, "Lỗi WebSocket");
-        leaveRoom(ws);
-    });
+    ws.on("close", () => leaveMeeting(ws));
+    ws.on("error", (error) => handleError(ws, error, "Lỗi WebSocket"));
 });
 
 // 🛠️ In ra URL Ngrok WebSocket để dễ kết nối
