@@ -2,8 +2,8 @@ import { useRef, useEffect, useState } from "react";
 
 const WEBSOCKET_URL = 
 // window.location.hostname === 'localhost' 
-//     ? "ws://localhost:4000": 
-"wss://cae0-113-23-102-201.ngrok-free.app"; // URL của WebSocket server
+"ws://localhost:4000";
+// "wss://cae0-113-23-102-201.ngrok-free.app";
 
 const useWebSocketService = (roomId, username) => {
 
