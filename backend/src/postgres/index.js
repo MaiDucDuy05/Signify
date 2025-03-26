@@ -1,8 +1,10 @@
-import sequelize from "./config.js";
+import { sequelize } from "./config.js";
 import User from "./models/User.js";
 import Meeting from "./models/Meeting.js";
 import MeetingUser from "./models/MeetingUser.js";
 import Message from "./models/Message.js";
+import dotenv from "dotenv";
+dotenv.config();
 
 User.belongsToMany(Meeting, { through: MeetingUser, foreignKey: "userId" });
 Meeting.belongsToMany(User, { through: MeetingUser, foreignKey: "meetingId" });
@@ -13,22 +15,27 @@ Message.belongsTo(Meeting, { foreignKey: "meetingId" });
 
 const initDB = async () => {
     try {
-      await sequelize.authenticate();
-      console.log("Database connected successfully.");
-  
-      await sequelize.sync({alter: true});
-      console.log("Models synchronized.");
+        await sequelize.sync({ alter: process.env.DB_ALTER === "true" });
+        console.log("✅ Database synchronized.");
     } catch (error) {
-      console.error("Database connection failed:", error.message);
-      console.error(error.stack);
+        console.error("❌ Database synchronization failed:", error);
+        throw error;
     }
 };
 
 const syncDB = async () => {
-    await sequelize.sync({alter: false});
-    console.log("Models synchronized.");
+    try {
+        await sequelize.sync({ alter: false });
+        console.log("✅ Models synchronized without altering.");
+    } catch (error) {
+        console.error("❌ Sync failed:", error);
+        throw error;
+    }
 };
 
-initDB();
+// Initialize the database on start only in development
+if (process.env.NODE_ENV !== "production") {
+    initDB();
+}
 
-export { sequelize, User, Meeting, MeetingUser, Message, syncDB, initDB};
+export { sequelize, User, Meeting, MeetingUser, Message, syncDB, initDB };

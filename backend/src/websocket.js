@@ -2,7 +2,7 @@ import WebSocket , { WebSocketServer } from "ws";
 import {User, Meeting, MeetingUser, Message } from "./postgres/index.js";
 
 
-export  function initWebSocket(server) {
+export function initWebSocket(server) {
 
     // Cấu trúc lưu trữ thông tin phòng và người dùng
     const meetings = new Map(); // Map<meetingId, Map<username, WebSocket>>

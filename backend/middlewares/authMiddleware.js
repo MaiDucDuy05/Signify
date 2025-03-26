@@ -1,14 +1,24 @@
 import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 export const authenticate = (req, res, next) => {
-    const token = req.header("Authorization");
-    if (!token) return res.status(401).json({ message: "Unauthorized" });
+    const authHeader = req.header("Authorization");
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ message: "Unauthorized: No token provided" });
+    }
+
+    const token = authHeader.split(" ")[1]; 
 
     try {
-        const decoded = jwt.verify(token, "your_secret_key");
-        req.user = decoded;
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded; 
         next();
     } catch (error) {
-        res.status(400).json({ message: "Invalid token" });
+        return res.status(401).json({ message: "Unauthorized: Invalid or expired token" });
     }
 };
+
+

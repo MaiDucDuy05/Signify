@@ -2,32 +2,33 @@ import classNames from "classnames/bind";
 import styles from "./Login.module.scss";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-
 import { useAuth } from "../../context/AuthContext.js";
-import { users } from "../../db/db.js";
+import API from "../../utils/api"; 
+
 
 const cx = classNames.bind(styles);
-
-
 
 function LogIn() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const {login} = useAuth();
+  const { login } = useAuth();
+  const [errorMessage, setErrorMessage] = useState("");
 
-const handleLogin = (e) => {
+
+  const handleLogin = async (e) => {
     e.preventDefault();
-    let userLogin = users.find(user => email === user.email && password === user.password);
 
-    if (!userLogin) {
-        alert("Sai email hoặc mật khẩu!");
-    } else {
-        const token = { id: userLogin.id, name: userLogin.name, imgLink: userLogin.imgLink };
-        login (JSON.stringify(token));
-        navigate("/dashboard");
+    try {
+      const response = await API.post("/auth/login", { email, password });
+      const { token, user } = response.data;
+      localStorage.setItem("authToken", token);
+      login(user);
+      navigate("/dashboard");
+    } catch (error) {
+        alert(error.response?.data?.error || "Sai email hoặc mật khẩu!");
     }
-};
+  };
 
   return (
     <div className={styles.wrap}>

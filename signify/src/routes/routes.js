@@ -3,8 +3,8 @@ import Meeting from '../pages/Meeting/Meeting.js';
 import SignUp from '../pages/SignUp/SignUp.js';
 import LogIn from '../pages/LogIn/LogIn.js';
 import WaitingRoom from '../pages/WaitingRoom/WaitingRoom.js';
-import DashBoard from '../pages/DashBoard/DashBoard.js';
-import HistoryMesting from '../pages/HistoryMesting/HistoryMesting.js';
+import DashBoard from '../pages/Dashboard/DashBoard.js';
+import HistoryMesting from '../pages/HistoryMeeting/HistoryMeeting.js';
 import Schedule from '../pages/Schedule/Schedule.js';
 import NewMeeting from '../pages/NewMeeting/NewMeeting.js';
   
