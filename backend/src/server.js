@@ -18,12 +18,12 @@ const startServer = async () => {
             console.log(`Server running on port ${PORT}`);
         });
 
-        // initWebSocket(server);
+        initWebSocket(server);
         
-        // server.on("error", (error) => {
-        //     console.error("Server error:", error);
-        //     process.exit(1); // Graceful exit on fatal error
-        // });
+        server.on("error", (error) => {
+            console.error("Server error:", error);
+            process.exit(1); 
+        });
 
     } catch (error) {
         console.error("Fatal error during startup:", error);
