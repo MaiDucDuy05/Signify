@@ -1,5 +1,5 @@
 import WebSocket , { WebSocketServer } from "ws";
-import {User, Meeting, MeetingUser, Message } from "./postgres/index.js";
+import {User, Meeting, MeetingUser, Message } from "./database/index.js";
 
 
 export function initWebSocket(server) {
@@ -8,7 +8,7 @@ export function initWebSocket(server) {
 
 
     function handleError(ws, error, message) {
-        console.error(`❌ ${message}:`, error);
+        console.error(`${message}:`, error);
         ws.send(JSON.stringify({
             type: "error",
             message: message
@@ -47,14 +47,14 @@ export function initWebSocket(server) {
         if (meeting.size === 0) meetings.delete(meetingCode);
     
         clients.delete(ws);
-        console.log(`👋 ${username} đã rời cuộc họp ${meetingCode}`);
+        console.log(`${username} đã rời cuộc họp ${meetingCode}`);
     }
 
 
 
     const wssServer = new WebSocketServer({ server });
     wssServer.on("connection", (ws) => {
-        console.log("🔌 Có kết nối mới");
+        console.log("Có kết nối mới");
     
         ws.on("message", async (message) => {
             try {
@@ -100,7 +100,7 @@ export function initWebSocket(server) {
                             participants: Array.from(meeting.keys()),
                         }, ws);
     
-                        console.log(`✅ ${username} đã vào cuộc họp ${meetingCode}`);
+                        console.log(`${username} đã vào cuộc họp ${meetingCode}`);
                         break;
                     }
     

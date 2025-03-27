@@ -1,4 +1,4 @@
-import { sequelize } from "./config.js";
+import { sequelize } from "../config/postgres.js";
 import User from "./models/User.js";
 import Meeting from "./models/Meeting.js";
 import MeetingUser from "./models/MeetingUser.js";

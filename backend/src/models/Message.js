@@ -1,5 +1,5 @@
 import { DataTypes } from "sequelize";
-import sequelize from "../config.js";
+import sequelize from "../../config/postgres.js";
 
 import User from "./User.js";
 import Meeting from "./Meeting.js";

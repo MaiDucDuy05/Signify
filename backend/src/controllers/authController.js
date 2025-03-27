@@ -13,8 +13,7 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
     try {
         const { email, password } = req.body;
-        const user = await loginUser(email, password);
-        const token = generateToken(user);
+        const { user, token } = await loginUser(email, password);
 
         res.json({ message: "Login successful", user, token });
     } catch (err) {

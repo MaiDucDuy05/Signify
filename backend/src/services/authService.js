@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import User from "../postgres/models/User.js";
+import User from "../database/models/User.js";
 
 dotenv.config();
 
@@ -17,7 +17,10 @@ export const loginUser = async (email, password) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) throw new Error("Invalid email or password");
 
-    return user;
+    const token = generateToken(user);
+    await redis.set(`user:${user.id}:token`, token, "EX", 86400);
+
+    return { user, token };
 };
 
 export const generateToken = (user) => {

@@ -1,7 +1,7 @@
 import http from "http";
 import app from "./app.js";
 import { initWebSocket } from "./websocket.js";
-import { initDB } from "./postgres/index.js";
+import { initDB } from "./database/index.js";
 
 const PORT = process.env.PORT || 8080;
 const HOST = "0.0.0.0";
