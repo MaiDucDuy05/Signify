@@ -1,17 +1,17 @@
 import { sequelize } from "../config/postgres.js";
-import User from "./models/User.js";
-import Meeting from "./models/Meeting.js";
-import MeetingUser from "./models/MeetingUser.js";
-import Message from "./models/Message.js";
+import User from "../models/User.js";
+import Meeting from "../models/Meeting.js";
+import MeetingUser from "../models/MeetingUser.js";
+import Message from "../models/Message.js";
 import dotenv from "dotenv";
 dotenv.config();
 
 User.belongsToMany(Meeting, { through: MeetingUser, foreignKey: "userId" });
 Meeting.belongsToMany(User, { through: MeetingUser, foreignKey: "meetingId" });
-User.hasMany(Message, { foreignKey: "userId" });
 Meeting.hasMany(Message, { foreignKey: "meetingId" });
-Message.belongsTo(User, { foreignKey: "userId" });
 Message.belongsTo(Meeting, { foreignKey: "meetingId" });
+Message.belongsTo(User, { foreignKey: "senderId"});
+User.hasMany(Message, { foreignKey: "senderId"});
 
 const initDB = async () => {
     try {

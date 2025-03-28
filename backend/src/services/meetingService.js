@@ -1,5 +1,5 @@
 import redis from "../config/redis.js";
-import Meeting from "../database/models/Meeting.js";
+import Meeting from "../models/Meeting.js";
 
 export const createMeeting = async (meetingData) => {
     const meeting = await Meeting.create(meetingData);

@@ -1,9 +1,11 @@
 import axios from "axios";
-
+const token = localStorage.getItem("token");
 const API = axios.create({
-  baseURL: "http://localhost:8080/api",
+  baseURL: "http://localhost:4000/api",
+  mode: 'cors',
   headers: {
     "Content-Type": "application/json",
+     Authorization: `Bearer ${token}`
   },
 });
 
@@ -24,5 +26,4 @@ export const sendMessage = (messageData) => API.post("/messages", messageData);
 // 🟢 API Xác thực (Auth)
 export const signup = (userData) => API.post("/auth/signup", userData);
 export const login = (credentials) => API.post("/auth/login", credentials);
-
 export default API;

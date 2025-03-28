@@ -1,12 +1,11 @@
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import redis from "../config/redis.js"; 
-
+import redis from "../src/config/redis.js"; 
 dotenv.config();
+
 
 export const authenticate = async (req, res, next) => {
     const authHeader = req.header("Authorization");
-
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
         return res.status(401).json({ message: "Unauthorized: No token provided" });
     }
