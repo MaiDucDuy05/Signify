@@ -6,18 +6,18 @@ dotenv.config();
 
 export const authenticate = async (req, res, next) => {
     const authHeader = req.header("Authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    console.log(authHeader)
+    
+    if (!authHeader || !authHeader.startsWith("Bearer")) {
         return res.status(401).json({ message: "Unauthorized: No token provided" });
     }
 
     const token = authHeader.split(" ")[1]; 
-
     try {
         const isBlacklisted = await redis.get(`blacklisted:${token}`);
         if (isBlacklisted) {
             return res.status(401).json({ message: "Unauthorized: Token has been revoked" });
         }
-
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.user = decoded; 
         next();

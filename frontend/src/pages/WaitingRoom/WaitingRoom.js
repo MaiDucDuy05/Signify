@@ -17,6 +17,7 @@ import { IoMdClose } from "react-icons/io"
 
 import styles from "./WaitingRoom.module.scss"
 import { useAuth } from "../../context/AuthContext.js"
+import { getMeetingByCodeMeeting as getMeetingByCodeMeetingAPI } from "../../utils/api.js"
 
 const cx = classNames.bind(styles)
 
@@ -84,16 +85,17 @@ const WaitingRoom = () => {
         }
       }
     }
-
-    initDevices()
-
+    if(roomId) {
+      initDevices()
+    }
+    
     // Cleanup function to stop all tracks when component unmounts
     return () => {
       if (stream) {
         stream.getTracks().forEach((track) => track.stop())
       }
     }
-  }, [])
+  }, [roomId])
 
   // Handle device change
   const changeAudioDevice = async (deviceId) => {
@@ -187,7 +189,8 @@ const WaitingRoom = () => {
   }
 
   // Join meeting
-  const joinMeeting = () => {
+  const joinMeeting =  () => {
+
     setIsJoining(true)
 
     // Stop all tracks before navigating
@@ -200,21 +203,30 @@ const WaitingRoom = () => {
   }
 
   // Join with code
-  const joinWithCode = () => {
-    if (!joinCode.trim()) {
-      alert("Please enter a meeting code")
-      return
+  const joinWithCode = async () => {
+    try {
+      if (!joinCode.trim()) {
+        alert("Please enter a meeting code")
+        return
+      }
+      const response = await getMeetingByCodeMeetingAPI(joinCode.trim());
+      if(!response) {
+        alert("Please enter a valid meeting code.")
+        return;
+      } else {
+        console.log(response.data)
+        // navigate(`/waiting-room?room=${joinCode}`)
+      }
+
+    } catch(error){
+      if (error.response && error.response.status === 404) {
+        alert("Invalid meeting code. Please check again.");
+      } else {
+        alert("An error occurred while joining the meeting. Please try again.");
+      }
     }
 
-    // Stop all tracks before navigating
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop())
-    }
-
-    // Navigate to meeting room with the entered code
-    navigate(`/waiting-room?room=${joinCode}`)
-  }
-
+  } 
   return (
     <div className={cx("container")}>
       <div className={cx("content")}>
