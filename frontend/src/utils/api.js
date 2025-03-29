@@ -2,10 +2,12 @@ import axios from "axios";
 
 const API = axios.create({
   baseURL: "http://localhost:8080/api",
+  mode: "cors",
   headers: {
     "Content-Type": "application/json",
   },
 });
+
 
 // 🟢 API Người dùng
 export const getUsers = () => API.get("/users");
