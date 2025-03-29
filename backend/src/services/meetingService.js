@@ -30,18 +30,18 @@ export const getMeetings = async () => {
     return meetings;
 };
 
-// export const getMeetingById = async (id) => {
-//     const cachedMeeting = await redis.get(`meeting:${id}`);
-//     if (cachedMeeting) {
-//         console.log("Get meeting from cache Redis");
-//         return JSON.parse(cachedMeeting);
-//     }
-//     const meeting = await Meeting.findByPk(id);
-//     if (!meeting) return null;
+export const getMeetingById = async (id) => {
+    const cachedMeeting = await redis.get(`meeting:${id}`);
+    if (cachedMeeting) {
+        console.log("Get meeting from cache Redis");
+        return JSON.parse(cachedMeeting);
+    }
+    const meeting = await Meeting.findByPk(id);
+    if (!meeting) return null;
 
-//     await redis.set(`meeting:${id}`, JSON.stringify(meeting), "EX", 300);
-//     return meeting;
-// };
+    await redis.set(`meeting:${id}`, JSON.stringify(meeting), "EX", 300);
+    return meeting;
+};
 
 
 export const getMeetingByCodeMeeting = async (meetingCode) => {

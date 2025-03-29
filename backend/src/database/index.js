@@ -6,11 +6,12 @@ import Message from "../models/Message.js";
 import dotenv from "dotenv";
 dotenv.config();
 
-User.belongsToMany(Meeting, { through: MeetingUser, foreignKey: "userId",onDelete: 'CASCADE',});
-Meeting.belongsToMany(User, { through: MeetingUser, foreignKey: "meetingId",onDelete: 'CASCADE', });
+User.belongsToMany(Meeting, { through: MeetingUser, foreignKey: "userId", onDelete: 'CASCADE',});
+Meeting.belongsToMany(User, { through: MeetingUser, foreignKey: "meetingId", onDelete: 'CASCADE', });
 
 Meeting.hasMany(Message, { foreignKey: "meetingId" });
 Message.belongsTo(Meeting, { foreignKey: "meetingId" });
+
 Message.belongsTo(User, { foreignKey: "senderId"});
 User.hasMany(Message, { foreignKey: "senderId"});
 
