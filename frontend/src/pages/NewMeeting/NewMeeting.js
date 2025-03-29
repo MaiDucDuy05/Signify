@@ -9,6 +9,7 @@ import { MdTitle, MdDescription, MdContentCopy } from "react-icons/md"
 
 import styles from "./NewMeeting.module.scss"
 import { useAuth } from "../../context/AuthContext.js"
+import { createMeeting as apiCreateMeeting } from "../../utils/api.js"
 
 const cx = classNames.bind(styles)
 
@@ -44,11 +45,12 @@ const NewMeeting = () => {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    date: new Date().toISOString().split("T")[0], // Today's date
-    time: new Date().toTimeString().substring(0, 5), // Current time
+    date: new Date().toISOString().split("T")[0], 
+    time: new Date().toTimeString().substring(0, 5), 
     duration: 60,
     isPrivate: true,
     meetingCode: generateMeetingCode(),
+    host:user?.id
   })
   const [showCodeCopied, setShowCodeCopied] = useState(false)
   const codeRef = useRef(null)
@@ -61,11 +63,9 @@ const NewMeeting = () => {
     })
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-
-    // Here you would typically save the meeting data to your backend
-    // For now, we'll just navigate to the waiting room with the meeting code
+    await apiCreateMeeting(formData)
     navigate(`/waiting-room?room=${formData.meetingCode}`)
   }
 
