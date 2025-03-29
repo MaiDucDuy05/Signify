@@ -14,6 +14,7 @@ Message.belongsTo(Meeting, { foreignKey: "meetingId" });
 Message.belongsTo(User, { foreignKey: "senderId"});
 User.hasMany(Message, { foreignKey: "senderId"});
 
+console.log(process.env.DB_ALTER === "true")
 
 const initDB = async () => {
     try {

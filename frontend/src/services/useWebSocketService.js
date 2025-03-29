@@ -1,9 +1,7 @@
 import { useRef, useEffect, useState } from "react";
 
-const WEBSOCKET_URL = "wss://ec19-58-186-166-154.ngrok-free.app"
-// window.location.hostname === 'localhost' 
+const WEBSOCKET_URL = "wss://0b1a-58-186-166-154.ngrok-free.app"
 // "ws://localhost:4000";
-// "wss://cae0-113-23-102-201.ngrok-free.app";
 
 const useWebSocketService = (roomId, username) => {
 

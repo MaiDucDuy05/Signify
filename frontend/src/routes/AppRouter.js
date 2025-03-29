@@ -2,6 +2,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { publicRoutes, privateRoutes } from './routes.js';
 import LayOut from '../layouts/Layout/Layout.js';
 import { useAuth } from "../context/AuthContext.js";
+import LogIn from '../pages/LogIn/LogIn.js';
 
 function NotFoundPage() {
     return <h1>404 - Page Not Found</h1>;
@@ -19,11 +20,7 @@ function AppRoutes() {
                     <Route
                         key={index}
                         path={route.path}
-                        element={
-                            user 
-                                ? <Navigate to="/dashboard" replace /> 
-                                : <LayOut><Page /></LayOut>
-                        }
+                        element={<LayOut><Page /></LayOut>}
                     />
                 );
             })}
@@ -37,7 +34,7 @@ function AppRoutes() {
                         element={
                             user 
                                 ? <LayOut><Page /></LayOut> 
-                                : <Navigate to="/login" state={{ from: location }} replace />
+                                : <LayOut><LogIn/></LayOut>
                         }
                     />
                 );

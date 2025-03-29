@@ -38,10 +38,14 @@ export function initWebSocket(server) {
         const user = await User.findOne({ where: { name: username } });
         if (user) {
             await MeetingUser.update({ leavedAt: new Date() }, { 
-                where: { userId: user.id, meetingId: (await Meeting.findOne({ where: { code: meetingCode } })).id }
+                where: { userId: user.id, meetingId: (await Meeting.findOne({ where: { meetingCode } })).id }
             });
         }
-    
+        
+        if(meeting[username] == []) {
+            await Meeting.update({status:"ended"}, { where: { meetingCode } })
+        }
+
         broadcastToMeeting(meetingCode, { type: "user-left", username });
     
         if (meeting.size === 0) meetings.delete(meetingCode);
@@ -76,15 +80,14 @@ export function initWebSocket(server) {
                         clients.set(ws, { username, meetingCode });
     
                         let userRecord = await User.findOne({ where: { name: username } });
-                        let meetingRecord = await Meeting.findOne({ where: { code: meetingCode } });
-                        if (!meetingRecord) {
-                            meetingRecord = await Meeting.create({ code: meetingCode, status: "active" });
+                        let meetingRecord = await Meeting.findOne({ where: {  meetingCode } });
+                        if (meetingRecord?.status !== "onging") {
+                            await Meeting.update({ status: "ongoing" }, { where: {meetingCode } });
                         }
                         const meetingId = meetingRecord.id;
-                        await MeetingUser.create({
-                            userId: userRecord.id,
-                            meetingId: meetingId,
-                            joinedAt: new Date(),
+                        await MeetingUser.findOrCreate({
+                            where: { userId: userRecord.id, meetingId: meetingId },
+                            defaults: { joinedAt: new Date() }
                         });
     
                         // Gửi danh sách người trong phòng cho người mới
@@ -129,19 +132,21 @@ export function initWebSocket(server) {
                         const clientInfo = clients.get(ws);
                         if (!clientInfo) return;
                         const { username, meetingCode } = clientInfo;
-    
+
+                        broadcastToMeeting(meetingCode, {
+                                                type: "chat-message",
+                                                from: username,
+                                                message: data.message,
+                                                timestamp: Date.now(),
+                                            });
+                                            
                         await Message.create({
                             senderId: (await User.findOne({ where: { name: username } })).id,
-                            meetingId: (await Meeting.findOne({ where: { code: meetingCode } })).id,
+                            meetingId: (await Meeting.findOne({ where: {meetingCode } })).id,
                             text: data.message,
                         });
     
-                        broadcastToMeeting(meetingCode, {
-                            type: "chat-message",
-                            from: username,
-                            message: data.message,
-                            timestamp: Date.now(),
-                        });
+                        
                         break;
                     }
                 }

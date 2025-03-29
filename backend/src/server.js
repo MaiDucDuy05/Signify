@@ -1,19 +1,15 @@
 import http from "http";
 import app from "./app.js";
 import { initWebSocket } from "./websocket.js";
-import { initDB } from "./database/index.js";
-import { fileURLToPath } from 'url';
-import path from 'path';
+import { initDB,syncDB } from "./database/index.js";
 const PORT = process.env.PORT || 8080;
 const HOST = "0.0.0.0";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
- 
 const startServer = async () => {
     try {
         console.log("🔄 Initializing database...");
         await initDB();
+        await syncDB();
         console.log("✅ Database initialized successfully.");
         const server = http.createServer(app);
 
