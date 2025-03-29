@@ -3,16 +3,16 @@ import { getAuthToken } from "./authToken.js";
 
 const API = axios.create({
   // baseURL: "http://localhost:4000/api",
-  baseURL:"https://5e50-58-186-166-154.ngrok-free.app/api",
-  mode: "cors",
-  headers: { "Content-Type": "application/json" },
+  baseURL:"https://0b1a-58-186-166-154.ngrok-free.app/api",
+  mode: "cors",method: "GET",
+  headers: { "Content-Type": "application/json","ngrok-skip-browser-warning": "true" },
+
 });
 
 // 🟢 Thêm Interceptor để tự động gán token
 API.interceptors.request.use(async (config) => {
   const jsonString  = await getAuthToken(); 
   const token = JSON.parse(jsonString)?.token
-  console.log(token)
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

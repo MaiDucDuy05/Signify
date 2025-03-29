@@ -214,8 +214,7 @@ const WaitingRoom = () => {
         alert("Please enter a valid meeting code.")
         return;
       } else {
-        console.log(response.data)
-        // navigate(`/waiting-room?room=${joinCode}`)
+        navigate(`/waiting-room?room=${joinCode}`)
       }
 
     } catch(error){
