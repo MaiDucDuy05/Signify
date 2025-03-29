@@ -30,7 +30,6 @@ const WaitingRoom = () => {
   // State for device settings
   const [isMicEnabled, setIsMicEnabled] = useState(true)
   const [isCameraEnabled, setIsCameraEnabled] = useState(true)
-  const [stream, setStream] = useState(null)
   const [audioDevices, setAudioDevices] = useState([])
   const [videoDevices, setVideoDevices] = useState([])
   const [selectedAudioDevice, setSelectedAudioDevice] = useState("")
@@ -41,69 +40,73 @@ const WaitingRoom = () => {
   const [isJoining, setIsJoining] = useState(false)
 
   const videoRef = useRef(null)
+  const streamRef = useRef(null)
   const meetingLinkRef = useRef(null)
 
-  // Initialize media devices
-  useEffect(() => {
-    const initDevices = async () => {
-      try {
-        // Request permissions for camera and microphone
-        const mediaStream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-          video: true,
-        })
+  const initDevices = async (withCamera, withAudio) => {
+    try {
 
-        setStream(mediaStream)
+      // Request permissions for camera and microphone
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: withAudio,
+        video: withCamera,
+      })
 
-        if (videoRef.current) {
-          videoRef.current.srcObject = mediaStream
-        }
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream
+      }
 
-        // Get available audio and video devices
-        const devices = await navigator.mediaDevices.enumerateDevices()
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop())
+      }
 
-        const audioInputs = devices.filter((device) => device.kind === "audioinput")
-        const videoInputs = devices.filter((device) => device.kind === "videoinput")
+      streamRef.current = mediaStream
 
-        setAudioDevices(audioInputs)
-        setVideoDevices(videoInputs)
+      // Get available audio and video devices
+      const devices = await navigator.mediaDevices.enumerateDevices()
 
-        if (audioInputs.length > 0) {
-          setSelectedAudioDevice(audioInputs[0].deviceId)
-        }
+      const audioInputs = devices.filter((device) => device.kind === "audioinput")
+      const videoInputs = devices.filter((device) => device.kind === "videoinput")
 
-        if (videoInputs.length > 0) {
-          setSelectedVideoDevice(videoInputs[0].deviceId)
-        }
-      } catch (error) {
-        console.error("Error accessing media devices:", error)
-        // Handle permission denied or devices not available
-        if (error.name === "NotAllowedError") {
-          alert("Camera and microphone access is required for meetings")
-        } else {
-          alert("Error accessing media devices. Please check your hardware.")
-        }
+      setAudioDevices(audioInputs)
+      setVideoDevices(videoInputs)
+
+      if (audioInputs.length > 0) {
+        setSelectedAudioDevice(audioInputs[0].deviceId)
+      }
+
+      if (videoInputs.length > 0) {
+        setSelectedVideoDevice(videoInputs[0].deviceId)
+      }
+    } catch (error) {
+      console.error("Error accessing media devices:", error)
+      // Handle permission denied or devices not available
+      if (error.name === "NotAllowedError") {
+        alert("Camera and microphone access is required for meetings")
+      } else {
+        alert("Error accessing media devices. Please check your hardware.")
       }
     }
-    if(roomId) {
-      initDevices()
-    }
-    
+  }
+
+  useEffect(() => {
     // Cleanup function to stop all tracks when component unmounts
     return () => {
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop())
+      console.log("Media: ", streamRef.current)
+      console.log("Cleaning")
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop())
       }
     }
   }, [roomId])
 
   // Handle device change
   const changeAudioDevice = async (deviceId) => {
-    if (!stream) return
+    if (!streamRef.current) return
 
     try {
       // Stop current audio tracks
-      stream.getAudioTracks().forEach((track) => track.stop())
+      streamRef.current.getAudioTracks().forEach((track) => track.stop())
 
       // Get new audio track
       const newStream = await navigator.mediaDevices.getUserMedia({
@@ -126,11 +129,11 @@ const WaitingRoom = () => {
   }
 
   const changeVideoDevice = async (deviceId) => {
-    if (!stream) return
+    if (!streamRef.current) return
 
     try {
       // Stop current video tracks
-      stream.getVideoTracks().forEach((track) => track.stop())
+      streamRef.current.getVideoTracks().forEach((track) => track.stop())
 
       // Get new video track
       const newStream = await navigator.mediaDevices.getUserMedia({
@@ -153,21 +156,28 @@ const WaitingRoom = () => {
   }
 
   // Toggle microphone
-  const toggleMicrophone = () => {
-    if (stream) {
-      stream.getAudioTracks().forEach((track) => {
-        track.enabled = !isMicEnabled
-      })
+  const toggleMicrophone = async () => {
+    if (streamRef.current) {
+      const tracks = streamRef.current.getAudioTracks()
+      if (tracks.length > 0) {
+        tracks.forEach(track => (track.enabled = !track.enabled))
+      }
       setIsMicEnabled(!isMicEnabled)
     }
   }
 
   // Toggle camera
-  const toggleCamera = () => {
-    if (stream) {
-      stream.getVideoTracks().forEach((track) => {
-        track.enabled = !isCameraEnabled
-      })
+  const toggleCamera = async () => {
+    if (streamRef.current) {
+      const tracks = streamRef.current.getVideoTracks()
+      if (tracks.length > 0) {
+        if (isCameraEnabled) {
+          tracks.forEach((track) => track.stop())
+        } else {
+          initDevices(true, isMicEnabled)
+        }
+      }
+
       setIsCameraEnabled(!isCameraEnabled)
     }
   }
@@ -194,8 +204,8 @@ const WaitingRoom = () => {
     setIsJoining(true)
 
     // Stop all tracks before navigating
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop())
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop())
     }
 
     // Navigate to meeting room with the room ID
@@ -216,16 +226,17 @@ const WaitingRoom = () => {
       } else {
         navigate(`/waiting-room?room=${joinCode}`)
       }
-
-    } catch(error){
-      if (error.response && error.response.status === 404) {
-        alert("Invalid meeting code. Please check again.");
-      } else {
-        alert("An error occurred while joining the meeting. Please try again.");
-      }
+    // Stop all tracks before navigating
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop())
     }
 
-  } 
+    initDevices(isCameraEnabled, isMicEnabled)
+
+    // Navigate to meeting room with the entered code
+    navigate(`/waiting-room?room=${joinCode}`)
+  }
+
   return (
     <div className={cx("container")}>
       <div className={cx("content")}>
@@ -405,4 +416,3 @@ const WaitingRoom = () => {
 }
 
 export default WaitingRoom
-
