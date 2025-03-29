@@ -6,12 +6,15 @@ import Message from "../models/Message.js";
 import dotenv from "dotenv";
 dotenv.config();
 
-User.belongsToMany(Meeting, { through: MeetingUser, foreignKey: "userId" });
-Meeting.belongsToMany(User, { through: MeetingUser, foreignKey: "meetingId" });
+User.belongsToMany(Meeting, { through: MeetingUser, foreignKey: "userId", onDelete: 'CASCADE',});
+Meeting.belongsToMany(User, { through: MeetingUser, foreignKey: "meetingId", onDelete: 'CASCADE', });
+
 Meeting.hasMany(Message, { foreignKey: "meetingId" });
 Message.belongsTo(Meeting, { foreignKey: "meetingId" });
+
 Message.belongsTo(User, { foreignKey: "senderId"});
 User.hasMany(Message, { foreignKey: "senderId"});
+
 
 const initDB = async () => {
     try {
@@ -25,7 +28,7 @@ const initDB = async () => {
 
 const syncDB = async () => {
     try {
-        await sequelize.sync({ alter: false });
+        await sequelize.sync({ alter: true });
         console.log("✅ Models synchronized without altering.");
     } catch (error) {
         console.error("❌ Sync failed:", error);

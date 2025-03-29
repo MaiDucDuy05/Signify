@@ -22,10 +22,10 @@ function LogIn() {
     try {
       const response = await apiLogin({email, password});
       const { token, user } = response.data;
-      localStorage.setItem("authToken", token);
       login({ token, ...user })
       navigate("/dashboard");
     } catch (error) {
+      console.log(error)
         alert(error.response?.data?.error || "Sai email hoặc mật khẩu!");
     }
   };

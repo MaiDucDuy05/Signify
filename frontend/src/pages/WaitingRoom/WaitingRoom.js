@@ -17,6 +17,7 @@ import { IoMdClose } from "react-icons/io"
 
 import styles from "./WaitingRoom.module.scss"
 import { useAuth } from "../../context/AuthContext.js"
+import { getMeetingByCodeMeeting as getMeetingByCodeMeetingAPI } from "../../utils/api.js"
 
 const cx = classNames.bind(styles)
 
@@ -97,7 +98,7 @@ const WaitingRoom = () => {
         streamRef.current.getTracks().forEach((track) => track.stop())
       }
     }
-  }, [])
+  }, [roomId])
 
   // Handle device change
   const changeAudioDevice = async (deviceId) => {
@@ -198,7 +199,8 @@ const WaitingRoom = () => {
   }
 
   // Join meeting
-  const joinMeeting = () => {
+  const joinMeeting =  () => {
+
     setIsJoining(true)
 
     // Stop all tracks before navigating
@@ -211,12 +213,19 @@ const WaitingRoom = () => {
   }
 
   // Join with code
-  const joinWithCode = () => {
-    if (!joinCode.trim()) {
-      alert("Please enter a meeting code")
-      return
-    }
-
+  const joinWithCode = async () => {
+    try {
+      if (!joinCode.trim()) {
+        alert("Please enter a meeting code")
+        return
+      }
+      const response = await getMeetingByCodeMeetingAPI(joinCode.trim());
+      if(!response) {
+        alert("Please enter a valid meeting code.")
+        return;
+      } else {
+        navigate(`/waiting-room?room=${joinCode}`)
+      }
     // Stop all tracks before navigating
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop())
