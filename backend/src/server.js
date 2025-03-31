@@ -1,6 +1,6 @@
 import http from "http";
 import app from "./app.js";
-import { initWebSocket } from "./websocket.js";
+import { initWebSocket } from "./websocket/websocket.js";
 import { initDB,syncDB } from "./database/index.js";
 const PORT = process.env.PORT || 8080;
 const HOST = process.env.HOST || "0.0.0.0";

@@ -13,15 +13,6 @@ export const createMeeting = async (meetingData) => {
             meetingId: meeting.id,
             role:"host"
         })
-    
-    const { host, ...meetingInfo } = meetingData;
-
-    const meeting = await Meeting.create(meetingInfo);
-    await MeetingUser.create(
-        {userId:host,
-            meetingId: meeting.id,
-            role:"host"
-        })
 
     await redis.del("meetings"); 
 
@@ -53,17 +44,6 @@ export const getMeetingById = async (id) => {
     return meeting;
 };
 
-export const getMeetingByCodeMeeting = async (meetingCode) => {
-    const cachedMeeting = await redis.get(`meeting:${meetingCode}`);
-    if (cachedMeeting) {
-        console.log("Get meeting from cache Redis");
-        return JSON.parse(cachedMeeting);
-    }
-    const meeting = await Meeting.findOne({ where: { meetingCode}});
-    if (!meeting) return null;
-    await redis.set(`meeting:${meetingCode}`, JSON.stringify(meeting), "EX", 300);
-    return meeting;
-}
 
 export const updateMeetingStatus = async (meetingCode, status) => {
     const meeting = await Meeting.findOne({ where: { meetingCode } });
@@ -73,33 +53,6 @@ export const updateMeetingStatus = async (meetingCode, status) => {
     await redis.del(`meeting:${meetingCode}`); 
     return meeting;
 }
-
-export const getMeetingByUser = async (userId) => {
-    const cachedMeeting = await redis.get(`meeting:${userId}`);
-    if (cachedMeeting) {
-        console.log("Get meeting from cache Redis");
-        return JSON.parse(cachedMeeting);
-    }
-
-    try {
-        const meetings = await Meeting.findAll({
-        include: [
-            {
-                model: MeetingUser,
-                where: { userId}, 
-                attributes: [], 
-            },
-        ],
-    });
-    if (!meetings.length) return null;
-    await redis.set(`meeting:${userId}`, JSON.stringify(meetings), "EX", 300);
-    return meetings;
-
-    } catch(err) {
-        console.log(err)
-    }
-};
-
 
 
 export const getMeetingByCodeMeeting = async (meetingCode) => {
