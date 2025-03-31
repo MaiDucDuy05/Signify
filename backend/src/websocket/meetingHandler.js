@@ -1,110 +1,109 @@
-import redis from "../config/redis.js";
-import { getMeetingById } from "../services/meetingService.js";
+import { updateMeetingStatus } from "../services/meetingService";
+import { addUserToMeeting, updateUserLeaveMeeting } from "../services/meetingUserService";
+import { sendMessage } from "../services/messageService";
 
-let wssInstance;
-
-export function setWebSocketInstance(wss) {
-    wssInstance = wss;
+export function broadcastToMeeting(meetingCode, message, exclude = null) {
+        if (!meetings.has(meetingCode)) return;
+        meetings.get(meetingCode).forEach((clientWs) => {
+            if (clientWs !== exclude && clientWs.readyState === WebSocket.OPEN) {
+                clientWs.send(JSON.stringify(message));
+            }
+        });
 }
-
-export async function joinMeeting(ws, data) {
-    const { userId, meetingCode } = data;
-
-    //Check meeting existence
-    const meeting = await getMeetingById(meetingId);
-    if (!meeting) {
-        ws.send(JSON.stringify({ type: "error", message: "Meeting không tồn tại" }));
-        return;
-    }
-
-    // Check user has joined the meeting
-    const isMember = await redis.sismember(`meeting:${meetingId}:participants`, userId);
-    if (isMember) {
-        ws.send(JSON.stringify({ type: "error", message: "User đã tham gia cuộc họp" }));
-        return;
-    }
-
-    // Save user to Redis
-    await redis.sadd(`meeting:${meetingId}:participants`, userId);
-    await redis.set(`client:${ws.id}`, JSON.stringify({ userId, meetingId }));
-
-    // Send participant list to users
-    const participants = await redis.smembers(`meeting:${meetingId}:participants`);
-    ws.send(JSON.stringify({ type: "meeting-info", participants }));
-
-    // Notify other participants about the new user
-    const user = await getUserById(userId);
-    const username = user ? user.name : "Unknown User";
-    await redis.publish(`meeting:${meetingId}`, JSON.stringify({
-        type: "user-joined",
-        username,
-    }));
-
-    console.log(`${username} joined meeting ${meetingId}`);
-}
-
-// Send message to all participants in the meeting
-export async function broadcastToMeeting(meetingId, message) {
-    await redis.publish(`meeting:${meetingId}`, JSON.stringify(message));
-}
-
-// Leave meeting and remove user from Redis
-export async function leaveMeeting(ws) {
-    const clientInfo = await redis.get(`client:${ws.id}`);
+    
+export async function handleleaveMeeting(clients, meetings, ws) {
+    const clientInfo = clients.get(ws);
     if (!clientInfo) return;
 
-    const { userId, meetingId } = JSON.parse(clientInfo);
+    const { username, meetingCode } = clientInfo;
+    if (!meetings.has(meetingCode)) return;
 
-    // Remove user from Redis
-    await redis.srem(`meeting:${meetingId}:participants`, userId);
-    await redis.del(`client:${ws.id}`);
+    const meeting = meetings.get(meetingCode);
+    meeting.delete(username);
+    await updateUserLeaveMeeting(username, meetingCode);
+    
+    if(meeting[username].size == 0) {
+        await updateMeetingStatus(meetingCode, "ended");
+    }
 
-    // Notify other participants about the user leaving
-    const user = await getUserById(userId);
-    const username = user ? user.name : "Unknown User";
-    await redis.publish(`meeting:${meetingId}`, JSON.stringify({
-        type: "user-left",
-        username,
-    }));
+    broadcastToMeeting(meetingCode, { type: "user-left", username });
 
+    if (meeting.size === 0) meetings.delete(meetingCode);
+
+    clients.delete(ws);
     console.log(`${username} đã rời cuộc họp ${meetingCode}`);
 }
 
+export async function handleJoinMeeting(clients, meetings, ws, data) {
+    const { username, meetingCode } = data;
+                        
+    // Tạo phòng mới nếu chưa tồn tại
+    if (!meetings.has(meetingCode)) meetings.set(meetingCode, new Map());
+    const meeting = meetings.get(meetingCode);
+    
+    // Kiểm tra xem username đã tồn tại trong phòng chưa
+    if (meeting.has(username)) return;
 
-// Subscribe to Redis Pub/Sub for meeting messages
-export function subscribeToMeetingMessages() {
-    const sub = redis.duplicate(); // Tạo Redis Subscriber
-    sub.psubscribe("meeting:*");
+    // Thêm người dùng vào phòng
+    meeting.set(username, ws);
+    clients.set(ws, { username, meetingCode });
+    let userRecord = await getUserByUsername(username);
+    let meetingRecord = await getMeetingByCodeMeeting(meetingCode)
+    if (meetingRecord?.status !== "ongoing") {
+        await updateMeetingStatus(meetingCode, "ongoing");
+    }
+    const meetingId = meetingRecord.id;
+    await addUserToMeeting(userRecord.id, meetingId);
 
-    sub.on("pmessage", async (pattern, channel, message) => {
-        try {
-            const meetingId = channel.split(":")[1]; // Lấy meetingId từ channel
-            const parsedMessage = JSON.parse(message);
-            const wss = getWebSocketInstance();
+    // Gửi danh sách người trong phòng cho người mới
+    ws.send(JSON.stringify({
+        type: "meeting-info",
+        participants: Array.from(meeting.keys()),
+    }));
+    
+    // Thông báo cho mọi người về người mới
+    broadcastToMeeting(meetingCode, {
+        type: "user-joined",
+        username,
+        participants: Array.from(meeting.keys()),
+    }, ws);
 
-            if (!wss) return;
-
-            // 🔹 Lấy danh sách userId từ Redis
-            const participants = await redis.smembers(`meeting:${meetingId}:participants`);
-
-            // 🔹 Gửi tin nhắn đến tất cả participants
-            for (const userId of participants) {
-                const clientWsId = await redis.get(`client:${userId}`);
-                if (clientWsId) {
-                    const clientWs = [...wss.clients].find(
-                        (client) => client.id === clientWsId
-                    );
-
-                    if (clientWs && clientWs.readyState === WebSocket.OPEN) {
-                        clientWs.send(JSON.stringify(parsedMessage));
-                    }
-                }
-            }
-        } catch (error) {
-            console.error("❌ Lỗi khi xử lý tin nhắn Pub/Sub:", error);
-        }
-    });
-
-    console.log("✅ Subscribed to Redis meeting messages");
+    console.log(`${username} đã vào cuộc họp ${meetingCode}`);
 }
 
+export function handleWebRTCSignaling(clients, meetings, ws, data) {
+    const clientInfo = clients.get(ws);
+    if (!clientInfo) return;
+
+    const { meetingCode } = clientInfo;
+    const meeting = meetings.get(meetingCode);
+    if (!meeting || !data.target) return;
+
+    const targetWs = meeting.get(data.target);
+    if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+        targetWs.send(JSON.stringify({
+            ...data,
+            from: clientInfo.username
+        }));
+    }
+}
+
+export async function handleChatMessage(clients, ws, data) {
+    const clientInfo = clients.get(ws);
+    if (!clientInfo) return;
+    const { username, meetingCode } = clientInfo;
+
+    broadcastToMeeting(meetingCode, {
+                            type: "chat-message",
+                            from: username,
+                            message: data.message,
+                            timestamp: Date.now(),
+    });
+    
+        
+    await sendMessage({
+        senderId: (await User.findOne({ where: { name: username } })).id,
+        meetingId: (await Meeting.findOne({ where: {meetingCode } })).id,
+        text: data.message,
+    });
+}

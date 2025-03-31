@@ -32,3 +32,16 @@ export const getUserById = async (id) => {
     }
     return user;
 };
+
+export const getUserByUsername = async (username) => {
+    const cachedUser = await redis.get(`user:${username}:name`);
+    if (cachedUser) {
+        console.log("Get user from cache Redis");
+        return JSON.parse(cachedUser);
+    }
+    const user = await User.findOne({ where: { name: username } });
+    if (user) {
+        await redis.set(`user:${username}:name`, JSON.stringify(user));
+    }
+    return user;
+};
