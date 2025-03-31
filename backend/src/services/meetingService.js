@@ -1,8 +1,18 @@
 import redis from "../config/redis.js";
 import Meeting from "../models/Meeting.js";
 import MeetingUser from "../models/MeetingUser.js";
+import MeetingUser from "../models/MeetingUser.js";
 
 export const createMeeting = async (meetingData) => {
+    
+    const { host, ...meetingInfo } = meetingData;
+
+    const meeting = await Meeting.create(meetingInfo);
+    await MeetingUser.create(
+        {userId:host,
+            meetingId: meeting.id,
+            role:"host"
+        })
     
     const { host, ...meetingInfo } = meetingData;
 
@@ -90,3 +100,42 @@ export const getMeetingByUser = async (userId) => {
     }
 };
 
+
+
+export const getMeetingByCodeMeeting = async (meetingCode) => {
+    const cachedMeeting = await redis.get(`meeting:${meetingCode}`);
+    if (cachedMeeting) {
+        console.log("Get meeting from cache Redis");
+        return JSON.parse(cachedMeeting);
+    }
+    const meeting = await Meeting.findOne({ where: { meetingCode } });
+    if (!meeting) return null;
+    await redis.set(`meeting:${meetingCode}`, JSON.stringify(meeting), "EX", 300);
+    return meeting;
+}
+
+export const getMeetingByUser = async (userId) => {
+    const cachedMeeting = await redis.get(`meeting:${userId}`);
+    if (cachedMeeting) {
+        console.log("Get meeting from cache Redis");
+        return JSON.parse(cachedMeeting);
+    }
+
+     try{
+        const meetings = await Meeting.findAll({
+        include: [
+            {
+                model: MeetingUser,
+                where: { userId}, 
+                attributes: [], 
+            },
+        ],
+    });
+    if (!meetings.length) return null;
+    await redis.set(`meeting:${userId}`, JSON.stringify(meetings), "EX", 300);
+    return meetings;
+
+    } catch(err) {
+        console.log(err)
+    }
+};

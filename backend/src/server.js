@@ -21,6 +21,7 @@ const startServer = async () => {
         
         server.on("error", (error) => {
             console.error("Server error:", error); 
+            console.error("Server error:", error); 
             process.exit(1); 
         });
 

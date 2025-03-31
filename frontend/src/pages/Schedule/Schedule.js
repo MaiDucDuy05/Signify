@@ -1,66 +1,87 @@
 "use client"
 
 import classNames from "classnames/bind"
-import { useState } from "react"
+import cn from "classnames";
+import {Link} from "react-router-dom"
+import { useEffect, useState } from "react"
 import styles from "./Schedule.module.scss"
 import { FaChevronLeft, FaChevronRight, FaPlus, FaSearch } from "react-icons/fa"
 import { IoMdClose } from "react-icons/io"
+import {getMeetingByUser} from "../../utils/api.js"
+import { useAuth } from "../../context/AuthContext.js";
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  addDays,
+  subDays,
+  getDay,
+  isSameMonth,
+  isSameDay,
+  addMonths,
+  subMonths,
+} from "date-fns"
 
 const cx = classNames.bind(styles)
 
 function Schedule() {
+  const {user} = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState("week") // 'day', 'week', 'month'
   const [showNewMeetingForm, setShowNewMeetingForm] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
-  const [meetings, setMeetings] = useState([
-    {
-      id: 1,
-      title: "Team Weekly Standup",
-      date: new Date(2025, 2, 19, 10, 0), // March 19, 2025, 10:00 AM
-      endDate: new Date(2025, 2, 19, 11, 0),
-      host: "Duy Mai",
-      participants: ["John Doe", "Jane Smith", "Bob Johnson"],
-      description: "Weekly team meeting to discuss progress and blockers.",
-    },
-    {
-      id: 2,
-      title: "Project Review",
-      date: new Date(2025, 2, 20, 14, 0), // March 20, 2025, 2:00 PM
-      endDate: new Date(2025, 2, 20, 15, 30),
-      host: "Duy Mai",
-      participants: ["Alice Brown", "Charlie Davis"],
-      description: "Review project milestones and deliverables.",
-    },
-    {
-      id: 3,
-      title: "Client Presentation",
-      date: new Date(2025, 2, 21, 9, 0), // March 21, 2025, 9:00 AM
-      endDate: new Date(2025, 2, 21, 10, 30),
-      host: "Duy Mai",
-      participants: ["Client A", "Client B", "Sales Team"],
-      description: "Present the new product features to the client.",
-    },
-    {
-      id: 4,
-      title: "Training Session",
-      date: new Date(2025, 2, 22, 13, 0), // March 22, 2025, 1:00 PM
-      endDate: new Date(2025, 2, 22, 16, 0),
-      host: "Duy Mai",
-      participants: ["New Employees", "HR Team"],
-      description: "Onboarding training for new team members.",
-    },
-  ])
+
+  const [meetings, setMeetings] = useState([]);
   const [newMeeting, setNewMeeting] = useState({
     title: "",
     date: "",
     time: "",
     duration: 60,
     host: "Duy Mai",
-    participants: "",
+    codeMeeting: "",
     description: "",
   })
   const [selectedMeeting, setSelectedMeeting] = useState(null)
+
+  const [events, setEvents] = useState([
+    { id: 1, title: "Team Meeting", date: new Date(2025, 2, 15, 10, 0), duration: 60 },
+    { id: 2, title: "Project Review", date: new Date(2025, 2, 18, 14, 0), duration: 90 },
+    { id: 3, title: "Client Call", date: new Date(2025, 2, 20, 11, 30), duration: 45 },
+  ])
+
+
+  useEffect(() => {
+    const fetchData = async () => {
+        try {
+            const response = await getMeetingByUser(user?.id);
+            const meetingsData = response.data;
+            const newMeetings = meetingsData.map((newMeeting, index) => {
+                const [year, month, day] = newMeeting.date.split("-").map(Number);
+                const [hours, minutes] = newMeeting.time.split(":").map(Number);
+                const startDate = new Date(year, month - 1, day, hours, minutes);
+                const endDate = new Date(startDate);
+                endDate.setMinutes(endDate.getMinutes() + Number.parseInt(newMeeting.duration));
+                return {
+                    id: newMeeting.id,
+                    title: newMeeting.title,
+                    date: startDate,
+                    endDate: endDate,
+                    status: newMeeting.status,
+                    codeMeeting: newMeeting.meetingCode,
+                    description: newMeeting.description,
+                };
+            });
+
+            setMeetings(newMeetings);
+
+        } catch (err) {
+            console.error("Lỗi khi lấy dữ liệu cuộc họp:", err);
+        }
+    };
+
+    fetchData();
+}, [user?.id]); 
 
   // Format date for display
   const formatDate = (date) => {
@@ -115,49 +136,14 @@ function Schedule() {
   // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault()
-
-    // Create date object from form inputs
-    const [year, month, day] = newMeeting.date.split("-").map(Number)
-    const [hours, minutes] = newMeeting.time.split(":").map(Number)
-    const startDate = new Date(year, month - 1, day, hours, minutes)
-
-    // Calculate end date based on duration
-    const endDate = new Date(startDate)
-    endDate.setMinutes(endDate.getMinutes() + Number.parseInt(newMeeting.duration))
-
-    // Create new meeting object
-    const meeting = {
-      id: meetings.length + 1,
-      title: newMeeting.title,
-      date: startDate,
-      endDate: endDate,
-      host: newMeeting.host,
-      participants: newMeeting.participants.split(",").map((p) => p.trim()),
-      description: newMeeting.description,
-    }
-
-    // Add to meetings array
-    setMeetings([...meetings, meeting])
-
-    // Reset form and close it
-    setNewMeeting({
-      title: "",
-      date: "",
-      time: "",
-      duration: 60,
-      host: "Duy Mai",
-      participants: "",
-      description: "",
-    })
     setShowNewMeetingForm(false)
   }
 
   // Filter meetings based on search query
   const filteredMeetings = meetings.filter(
     (meeting) =>
-      meeting.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      meeting.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      meeting.host.toLowerCase().includes(searchQuery.toLowerCase()),
+      // meeting.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      meeting.description.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   // Get days for week view
@@ -183,6 +169,19 @@ function Schedule() {
       meeting.date.getMonth() === date.getMonth() &&
       meeting.date.getFullYear() === date.getFullYear()
     )
+  }
+
+  const getEventsForDay = (day) => {
+    return meetings.filter((meeting) => isSameDay(day, meeting.date))
+  }
+
+  const generateCalendarDays = () => {
+    const monthStart = startOfMonth(currentDate)
+    const monthEnd = endOfMonth(currentDate)
+    const startDate = subDays(monthStart, getDay(monthStart))
+    const endDate = addDays(monthEnd, 6 - getDay(monthEnd))
+
+    return eachDayOfInterval({ start: startDate, end: endDate })
   }
 
   return (
@@ -260,7 +259,8 @@ function Schedule() {
                           {formatTime(meeting.date)} - {formatTime(meeting.endDate)}
                         </div>
                         <h3 className={cx("meetingTitle")}>{meeting.title}</h3>
-                        <div className={cx("meetingHost")}>Host: {meeting.host}</div>
+                        <div className={cx("meetingHost")}>status: {meeting.status}</div>
+                        <div className={cx("meetingHost")}>code: {meeting.codeMeeting}</div>
                       </div>
                     ))}
                 </div>
@@ -286,7 +286,7 @@ function Schedule() {
                     <div className={cx("meetingCardBody")}>
                       <p className={cx("meetingDescription")}>{meeting.description}</p>
                       <div className={cx("meetingHost")}>Host: {meeting.host}</div>
-                      <div className={cx("meetingParticipants")}>Participants: {meeting.participants.join(", ")}</div>
+                      <div className={cx("meetingCode")}>Meeting Code: {meeting.codeMeeting}</div>
                     </div>
                   </div>
                 ))}
@@ -298,7 +298,8 @@ function Schedule() {
         )}
 
         {view === "month" && (
-          <div className={cx("monthView")}>
+          <div className={cx("scheduleContent")}>
+            <div className={cx("monthView")}>
             <div className={cx("monthViewHeader")}>
               <div>Sunday</div>
               <div>Monday</div>
@@ -308,11 +309,33 @@ function Schedule() {
               <div>Friday</div>
               <div>Saturday</div>
             </div>
-            <div className={cx("monthGrid")}>
               {/* This would be a calendar grid - simplified for this example */}
-              <div className={cx("monthViewMessage")}>Month view calendar grid would be implemented here</div>
+              <div className={cx("monthGrid")}>
+              {generateCalendarDays().map((day, index) => {
+                const dayEvents = getEventsForDay(day)
+                const isCurrentMonth = isSameMonth(day, currentDate)
+                const isToday = isSameDay(day, new Date())
+                return (
+                  <div
+                    key={index}
+                    className={cn(cx("monthDay"), !isCurrentMonth && cx("otherMonth"), isToday && cx("today"))}
+                  >
+                    <div className={cx("dayNumber")}>{format(day, "d")}</div>
+                    <div className={cx("dayEvents")}>
+                      {dayEvents.slice(0, 3).map((event) => (
+                        <div key={event.id} className={cx("eventPill")}>
+                          {event.title||event.status}
+                        </div>
+                      ))}
+                      {dayEvents.length > 3 && <div className={cx("moreEvents")}>+{dayEvents.length - 3} more</div>}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
+          </div>
+
         )}
 
         <div className={cx("upcomingMeetings")}>
@@ -330,7 +353,7 @@ function Schedule() {
                     <div className={cx("upcomingTime")}>
                       {formatTime(meeting.date)} - {formatTime(meeting.endDate)}
                     </div>
-                    <div className={cx("upcomingHost")}>Host: {meeting.host}</div>
+                    <div className={cx("upcomingHost")}>Code: {meeting.codeMeeting}</div>
                   </div>
                 </div>
               ))}
@@ -418,14 +441,14 @@ function Schedule() {
               </div>
 
               <div className={cx("formGroup")}>
-                <label htmlFor="participants">Participants (comma separated)</label>
+                <label htmlFor="codeMeeting">Code Meeting (comma separated)</label>
                 <input
                   type="text"
-                  id="participants"
-                  name="participants"
-                  value={newMeeting.participants}
+                  id="codeMeeting"
+                  name="codeMeeting"
+                  value={newMeeting.meetingCode}
                   onChange={handleInputChange}
-                  placeholder="John Doe, Jane Smith, etc."
+                  placeholder="Code..."
                 />
               </div>
 
@@ -475,9 +498,9 @@ function Schedule() {
                 </div>
               </div>
 
-              <div className={cx("detailsGroup")}>
-                <div className={cx("detailsLabel")}>Host:</div>
-                <div className={cx("detailsValue")}>{selectedMeeting.host}</div>
+              <div className={cx("detailsGroup")} style={{ display: "flex" }}>
+                <div className={cx("detailsLabel")}>Status:</div>
+                <div className={cx("detailsValue")} style={{ marginLeft: "20px" }} >{selectedMeeting.status}</div>
               </div>
 
               <div className={cx("detailsGroup")}>
@@ -485,19 +508,15 @@ function Schedule() {
                 <div className={cx("detailsValue")}>{selectedMeeting.description}</div>
               </div>
 
-              <div className={cx("detailsGroup")}>
-                <div className={cx("detailsLabel")}>Participants:</div>
-                <div className={cx("detailsValue")}>
-                  <ul className={cx("participantsList")}>
-                    {selectedMeeting.participants.map((participant, index) => (
-                      <li key={index}>{participant}</li>
-                    ))}
-                  </ul>
+              <div className={cx("detailsGroup")} style={{ display: "flex" }}>
+                <div className={cx("detailsLabel")}>Meeting Code:</div>
+                <div className={cx("detailsValue")} style={{ marginLeft: "20px" }}>
+                    {selectedMeeting.codeMeeting}
                 </div>
               </div>
 
               <div className={cx("meetingActions")}>
-                <button className={cx("actionButton", "joinButton")}>Join Meeting</button>
+                <Link to = {`/waiting-room/?room=${selectedMeeting.codeMeeting}`} className={cx("actionButton", "joinButton")}>Join Meeting</Link>
                 <button className={cx("actionButton", "editButton")}>Edit</button>
                 <button className={cx("actionButton", "deleteButton")}>Cancel Meeting</button>
               </div>
