@@ -1,5 +1,6 @@
 import { WebSocketServer } from "ws";
-import { handleChatMessage, handleJoinMeeting, handleWebRTCSignaling } from "./meetingHandler.js";
+import { handleChatMessage, handleJoinMeeting, handleWebRTCSignaling, handleleaveMeeting } from "./meetingHandler.js";
+import { handleError } from "./errorHandler.js";
 
 
 export function initWebSocket(server) {
@@ -27,7 +28,7 @@ export function initWebSocket(server) {
                     
     
                     case "chat-message":
-                        handleChatMessage(clients, ws, data);
+                        handleChatMessage(clients, meetings, ws, data);
                         break;
                 }
             } catch (error) {
@@ -36,7 +37,7 @@ export function initWebSocket(server) {
         });
     
         ws.on("close", () => handleleaveMeeting(clients, meetings, ws));
-        ws.on("error", (error) => handleError(ws, error, "Error in WebSocket connection"));
+        ws.on("error", (error) => handleError(ws, error, "WebSocket error"));
     });
 
 }

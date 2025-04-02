@@ -1,9 +1,15 @@
 import http from "http";
 import app from "./app.js";
 import { initWebSocket } from "./websocket/websocket.js";
-import { initDB,syncDB } from "./database/index.js";
+import { initDB, syncDB } from "./database/index.js";
+import { fileURLToPath } from 'url';
+import path from 'path';
+
 const PORT = process.env.PORT || 8080;
 const HOST = process.env.HOST || "0.0.0.0";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const startServer = async () => {
     try {

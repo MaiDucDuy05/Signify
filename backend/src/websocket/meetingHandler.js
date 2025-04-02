@@ -1,8 +1,11 @@
-import { updateMeetingStatus } from "../services/meetingService";
-import { addUserToMeeting, updateUserLeaveMeeting } from "../services/meetingUserService";
-import { sendMessage } from "../services/messageService";
+import WebSocket from "ws";
+import { updateMeetingStatus } from "../services/meetingService.js";
+import { addUserToMeeting, updateUserLeaveMeeting } from "../services/meetingUserService.js";
+import { sendMessage } from "../services/messageService.js";
+import { getUserByUsername } from "../services/userService.js";
+import { getMeetingByCodeMeeting } from "../services/meetingService.js";
 
-export function broadcastToMeeting(meetingCode, message, exclude = null) {
+export function broadcastToMeeting(meetings, meetingCode, message, exclude = null) {
         if (!meetings.has(meetingCode)) return;
         meetings.get(meetingCode).forEach((clientWs) => {
             if (clientWs !== exclude && clientWs.readyState === WebSocket.OPEN) {
@@ -22,11 +25,11 @@ export async function handleleaveMeeting(clients, meetings, ws) {
     meeting.delete(username);
     await updateUserLeaveMeeting(username, meetingCode);
     
-    if(meeting[username].size == 0) {
+    if(meeting[username] == []) {
         await updateMeetingStatus(meetingCode, "ended");
     }
 
-    broadcastToMeeting(meetingCode, { type: "user-left", username });
+    broadcastToMeeting(meetings, meetingCode, { type: "user-left", username });
 
     if (meeting.size === 0) meetings.delete(meetingCode);
 
@@ -62,7 +65,7 @@ export async function handleJoinMeeting(clients, meetings, ws, data) {
     }));
     
     // Thông báo cho mọi người về người mới
-    broadcastToMeeting(meetingCode, {
+    broadcastToMeeting(meetings, meetingCode, {
         type: "user-joined",
         username,
         participants: Array.from(meeting.keys()),
@@ -88,12 +91,12 @@ export function handleWebRTCSignaling(clients, meetings, ws, data) {
     }
 }
 
-export async function handleChatMessage(clients, ws, data) {
+export async function handleChatMessage(clients, meetings, ws, data) {
     const clientInfo = clients.get(ws);
     if (!clientInfo) return;
     const { username, meetingCode } = clientInfo;
 
-    broadcastToMeeting(meetingCode, {
+    broadcastToMeeting(meetings, meetingCode, {
                             type: "chat-message",
                             from: username,
                             message: data.message,
@@ -102,8 +105,8 @@ export async function handleChatMessage(clients, ws, data) {
     
         
     await sendMessage({
-        senderId: (await User.findOne({ where: { name: username } })).id,
-        meetingId: (await Meeting.findOne({ where: {meetingCode } })).id,
+        senderId: (await getUserByUsername(username)).id,
+        meetingId: (await getMeetingByCodeMeeting(meetingCode)).id,
         text: data.message,
     });
 }

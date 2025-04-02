@@ -2,11 +2,11 @@ import axios from "axios";
 import { getAuthToken } from "./authToken.js";
 
 const API = axios.create({
-  baseURL: "http://localhost:8080/api",
-  mode: "cors", 
-  method: "GET",
+  baseURL: "http://localhost:4000/api",
+  // mode: "cors", method: "GET",
   headers: { "Content-Type": "application/json","ngrok-skip-browser-warning": "true" },
 });
+
 
 API.interceptors.request.use(async (config) => {
   const jsonString  = await getAuthToken(); 

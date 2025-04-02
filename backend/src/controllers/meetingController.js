@@ -18,15 +18,15 @@ export const getMeetings = async (req, res) => {
     }
 };
 
-// export const getMeetingById = async (req, res) => {
-//     try {
-//         const meeting = await meetingService.getMeetingById(req.params.id);
-//         if (!meeting) return res.status(404).json({ message: "Meeting not found" });
-//         res.status(200).json(meeting);
-//     } catch (error) {
-//         res.status(500).json({ error: error.message });
-//     }
-// };
+export const getMeetingById = async (req, res) => {
+    try {
+        const meeting = await meetingService.getMeetingById(req.params.id);
+        if (!meeting) return res.status(404).json({ message: "Meeting not found" });
+        res.status(200).json(meeting);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
 
 
 export const getMeetingByCodeMeeting = async(req,res) =>{

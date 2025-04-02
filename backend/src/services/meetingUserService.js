@@ -1,8 +1,10 @@
-import { findOrCreate } from "../models/MeetingUser";
+import MeetingUser from "../models/MeetingUser.js";
+import { getUserByUsername } from "./userService.js";
+import { getMeetingByCodeMeeting } from "./meetingService.js";
 
 export const addUserToMeeting = async (userId, meetingId) => {
     try {
-        await findOrCreate({
+        await MeetingUser.findOrCreate({
             where: { userId, meetingId },
             defaults: { joinedAt: new Date() }
         });

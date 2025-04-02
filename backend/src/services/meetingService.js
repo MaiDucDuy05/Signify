@@ -1,7 +1,6 @@
 import redis from "../config/redis.js";
 import Meeting from "../models/Meeting.js";
 import MeetingUser from "../models/MeetingUser.js";
-import MeetingUser from "../models/MeetingUser.js";
 
 export const createMeeting = async (meetingData) => {
     

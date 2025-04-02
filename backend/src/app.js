@@ -7,10 +7,16 @@ dotenv.config();
 const app = express();
 const REACT_API =  process.env.REACT_API
 
-console.log(REACT_API)
+// const corsOptions = {
+//   // origin: `${REACT_API}`,
+//   origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
+//   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+//   allowedHeaders: ["Content-Type", "Authorization", "Accept", "ngrok-skip-browser-warning"],
+//   credentials: true
+// };
 
 const corsOptions = {
-  origin: `${REACT_API}`, 
+  origin: "*", 
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "Accept", "ngrok-skip-browser-warning"],
   credentials: true

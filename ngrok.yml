@@ -10,6 +10,6 @@ tunnels:
     host_header: rewrite
 
   backend:
-    addr: 8080
+    addr: 4000
     proto: http
     host_header: rewrite

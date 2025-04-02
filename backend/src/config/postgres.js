@@ -21,12 +21,12 @@ const sequelize = new Sequelize(
         retry: {
             max: 3,
         },
-        dialectOptions: {
-            ssl: {
-              require: true,
-              rejectUnauthorized: false 
-            }
-          }
+        // dialectOptions: {
+        //     ssl: {
+        //       require: true,
+        //       rejectUnauthorized: false 
+        //     }
+        //   }
     }
 );
 
