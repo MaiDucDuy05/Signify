@@ -1,13 +1,11 @@
-"use client"
 
 import classNames from "classnames/bind"
-import cn from "classnames";
-import {Link} from "react-router-dom"
+import { Link } from "react-router-dom"
 import { useEffect, useState } from "react"
 import styles from "./Schedule.module.scss"
 import { FaChevronLeft, FaChevronRight, FaPlus, FaSearch } from "react-icons/fa"
 import { IoMdClose } from "react-icons/io"
-import {getMeetingByUser} from "../../utils/api.js"
+import { getMeetingByUser } from "../../utils/api.js"
 import { useAuth } from "../../context/AuthContext.js";
 import {
   format,
@@ -26,7 +24,7 @@ import {
 const cx = classNames.bind(styles)
 
 function Schedule() {
-  const {user} = useAuth();
+  const { user } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState("week") // 'day', 'week', 'month'
   const [showNewMeetingForm, setShowNewMeetingForm] = useState(false)
@@ -44,44 +42,38 @@ function Schedule() {
   })
   const [selectedMeeting, setSelectedMeeting] = useState(null)
 
-  const [events, setEvents] = useState([
-    { id: 1, title: "Team Meeting", date: new Date(2025, 2, 15, 10, 0), duration: 60 },
-    { id: 2, title: "Project Review", date: new Date(2025, 2, 18, 14, 0), duration: 90 },
-    { id: 3, title: "Client Call", date: new Date(2025, 2, 20, 11, 30), duration: 45 },
-  ])
-
 
   useEffect(() => {
     const fetchData = async () => {
-        try {
-            const response = await getMeetingByUser(user?.id);
-            const meetingsData = response.data;
-            const newMeetings = meetingsData.map((newMeeting, index) => {
-                const [year, month, day] = newMeeting.date.split("-").map(Number);
-                const [hours, minutes] = newMeeting.time.split(":").map(Number);
-                const startDate = new Date(year, month - 1, day, hours, minutes);
-                const endDate = new Date(startDate);
-                endDate.setMinutes(endDate.getMinutes() + Number.parseInt(newMeeting.duration));
-                return {
-                    id: newMeeting.id,
-                    title: newMeeting.title,
-                    date: startDate,
-                    endDate: endDate,
-                    status: newMeeting.status,
-                    codeMeeting: newMeeting.meetingCode,
-                    description: newMeeting.description,
-                };
-            });
+      try {
+        const response = await getMeetingByUser(user?.id);
+        const meetingsData = response.data;
+        const newMeetings = meetingsData.map((newMeeting, index) => {
+          const [year, month, day] = newMeeting.date.split("-").map(Number);
+          const [hours, minutes] = newMeeting.time.split(":").map(Number);
+          const startDate = new Date(year, month - 1, day, hours, minutes);
+          const endDate = new Date(startDate);
+          endDate.setMinutes(endDate.getMinutes() + Number.parseInt(newMeeting.duration));
+          return {
+            id: newMeeting.id,
+            title: newMeeting.title,
+            date: startDate,
+            endDate: endDate,
+            status: newMeeting.status,
+            codeMeeting: newMeeting.meetingCode,
+            description: newMeeting.description,
+          };
+        });
 
-            setMeetings(newMeetings);
+        setMeetings(newMeetings);
 
-        } catch (err) {
-            console.error("Lỗi khi lấy dữ liệu cuộc họp:", err);
-        }
+      } catch (err) {
+        console.error("Lỗi khi lấy dữ liệu cuộc họp:", err);
+      }
     };
 
     fetchData();
-}, [user?.id]); 
+  }, [user?.id]);
 
   // Format date for display
   const formatDate = (date) => {
@@ -300,40 +292,40 @@ function Schedule() {
         {view === "month" && (
           <div className={cx("scheduleContent")}>
             <div className={cx("monthView")}>
-            <div className={cx("monthViewHeader")}>
-              <div>Sunday</div>
-              <div>Monday</div>
-              <div>Tuesday</div>
-              <div>Wednesday</div>
-              <div>Thursday</div>
-              <div>Friday</div>
-              <div>Saturday</div>
-            </div>
+              <div className={cx("monthViewHeader")}>
+                <div>Sunday</div>
+                <div>Monday</div>
+                <div>Tuesday</div>
+                <div>Wednesday</div>
+                <div>Thursday</div>
+                <div>Friday</div>
+                <div>Saturday</div>
+              </div>
               {/* This would be a calendar grid - simplified for this example */}
               <div className={cx("monthGrid")}>
-              {generateCalendarDays().map((day, index) => {
-                const dayEvents = getEventsForDay(day)
-                const isCurrentMonth = isSameMonth(day, currentDate)
-                const isToday = isSameDay(day, new Date())
-                return (
-                  <div
-                    key={index}
-                    className={cn(cx("monthDay"), !isCurrentMonth && cx("otherMonth"), isToday && cx("today"))}
-                  >
-                    <div className={cx("dayNumber")}>{format(day, "d")}</div>
-                    <div className={cx("dayEvents")}>
-                      {dayEvents.slice(0, 3).map((event) => (
-                        <div key={event.id} className={cx("eventPill")}>
-                          {event.title||event.status}
-                        </div>
-                      ))}
-                      {dayEvents.length > 3 && <div className={cx("moreEvents")}>+{dayEvents.length - 3} more</div>}
+                {generateCalendarDays().map((day, index) => {
+                  const dayEvents = getEventsForDay(day)
+                  const isCurrentMonth = isSameMonth(day, currentDate)
+                  const isToday = isSameDay(day, new Date())
+                  return (
+                    <div
+                      key={index}
+                      className={cx("monthDay", { otherMonth: !isCurrentMonth, today: isToday })}
+                    >
+                      <div className={cx("dayNumber")}>{format(day, "d")}</div>
+                      <div className={cx("dayEvents")}>
+                        {dayEvents.slice(0, 3).map((event) => (
+                          <div key={event.id} className={cx("eventPill")}>
+                            {event.title || event.status}
+                          </div>
+                        ))}
+                        {dayEvents.length > 3 && <div className={cx("moreEvents")}>+{dayEvents.length - 3} more</div>}
+                      </div>
                     </div>
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
             </div>
-          </div>
           </div>
 
         )}
@@ -511,12 +503,12 @@ function Schedule() {
               <div className={cx("detailsGroup")} style={{ display: "flex" }}>
                 <div className={cx("detailsLabel")}>Meeting Code:</div>
                 <div className={cx("detailsValue")} style={{ marginLeft: "20px" }}>
-                    {selectedMeeting.codeMeeting}
+                  {selectedMeeting.codeMeeting}
                 </div>
               </div>
 
               <div className={cx("meetingActions")}>
-                <Link to = {`/waiting-room/?room=${selectedMeeting.codeMeeting}`} className={cx("actionButton", "joinButton")}>Join Meeting</Link>
+                <Link to={`/waiting-room/?room=${selectedMeeting.codeMeeting}`} className={cx("actionButton", "joinButton")}>Join Meeting</Link>
                 <button className={cx("actionButton", "editButton")}>Edit</button>
                 <button className={cx("actionButton", "deleteButton")}>Cancel Meeting</button>
               </div>

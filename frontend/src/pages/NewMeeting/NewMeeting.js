@@ -1,4 +1,3 @@
-"use client"
 
 import { useState, useRef } from "react"
 import { useNavigate } from "react-router-dom"
@@ -45,12 +44,12 @@ const NewMeeting = () => {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    date: new Date().toISOString().split("T")[0], 
-    time: new Date().toTimeString().substring(0, 5), 
+    date: new Date().toISOString().split("T")[0],
+    time: new Date().toTimeString().substring(0, 5),
     duration: 60,
     isPrivate: true,
     meetingCode: generateMeetingCode(),
-    host:user?.id
+    host: user?.id
   })
   const [showCodeCopied, setShowCodeCopied] = useState(false)
   const codeRef = useRef(null)

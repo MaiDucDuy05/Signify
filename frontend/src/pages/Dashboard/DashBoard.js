@@ -1,4 +1,3 @@
-"use client"
 
 import classNames from "classnames/bind"
 import { useEffect, useState } from "react"
@@ -56,7 +55,7 @@ function DashBoard() {
                 <p>Join</p>
               </div>
             </Link>
-            <Link to ="/schedule" className={cx("functionLink")}>
+            <Link to="/schedule" className={cx("functionLink")}>
               <div className={cx("functionItem")}>
                 <div className={cx("iconWrapper", "schedule")}>
                   <BsCalendarPlus className={cx("functionIcon")} />
@@ -64,8 +63,8 @@ function DashBoard() {
                 <p>Schedule</p>
               </div>
             </Link>
-            
-            <Link to="/history-meeting" className={cx("functionLink")}> 
+
+            <Link to="/history-meeting" className={cx("functionLink")}>
               <div className={cx("functionItem")}>
                 <div className={cx("iconWrapper", "shareScreen")}>
                   <MdHistory className={cx("functionIcon")} />

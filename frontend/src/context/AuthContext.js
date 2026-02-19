@@ -11,8 +11,7 @@ export const AuthProvider = ({ children }) => {
         const token = getAuthToken();
         if (token) {
             try {
-                const userData = JSON.parse(token);
-                setUser(userData);
+                setUser(token);
             } catch (error) {
                 console.error("Invalid token:", error);
                 removeAuthToken();
@@ -23,20 +22,21 @@ export const AuthProvider = ({ children }) => {
 
     const login = (userData) => {
         saveAuthToken(JSON.stringify(userData));
-        setUser(userData); 
+        setUser(userData);
     };
 
     const logout = () => {
         removeAuthToken();
-        setUser(null); 
+        setUser(null);
 
     };
 
     return (
-        <AuthContext.Provider value={{user, login, logout}}>
+        <AuthContext.Provider value={{ user, login, logout }}>
             {children}
         </AuthContext.Provider>
     );
 };
 
 export const useAuth = () => useContext(AuthContext);
+

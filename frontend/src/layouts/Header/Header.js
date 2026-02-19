@@ -1,8 +1,7 @@
-"use client"
 
 import classNames from "classnames/bind"
 import { useNavigate } from "react-router-dom"
-import {useState } from "react"
+import { useState } from "react"
 import { CiVideoOn } from "react-icons/ci"
 import { Link } from "react-router-dom"
 import { IoLogInOutline } from "react-icons/io5"

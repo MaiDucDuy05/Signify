@@ -1,7 +1,7 @@
 import http from "http";
 import app from "./app.js";
 import { initWebSocket } from "./websocket/websocket.js";
-import { initDB, syncDB } from "./database/index.js";
+import { initDB } from "./database/index.js";
 import { fileURLToPath } from 'url';
 import path from 'path';
 
@@ -15,7 +15,6 @@ const startServer = async () => {
     try {
         console.log("🔄 Initializing database...");
         await initDB();
-        await syncDB();
         console.log("✅ Database initialized successfully.");
         const server = http.createServer(app);
 
@@ -24,11 +23,10 @@ const startServer = async () => {
         });
 
         initWebSocket(server);
-        
+
         server.on("error", (error) => {
-            console.error("Server error:", error); 
-            console.error("Server error:", error); 
-            process.exit(1); 
+            console.error("Server error:", error);
+            process.exit(1);
         });
 
     } catch (error) {

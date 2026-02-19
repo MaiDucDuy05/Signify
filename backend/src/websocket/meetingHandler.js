@@ -6,14 +6,14 @@ import { getUserByUsername } from "../services/userService.js";
 import { getMeetingByCodeMeeting } from "../services/meetingService.js";
 
 export function broadcastToMeeting(meetings, meetingCode, message, exclude = null) {
-        if (!meetings.has(meetingCode)) return;
-        meetings.get(meetingCode).forEach((clientWs) => {
-            if (clientWs !== exclude && clientWs.readyState === WebSocket.OPEN) {
-                clientWs.send(JSON.stringify(message));
-            }
-        });
+    if (!meetings.has(meetingCode)) return;
+    meetings.get(meetingCode).forEach((clientWs) => {
+        if (clientWs !== exclude && clientWs.readyState === WebSocket.OPEN) {
+            clientWs.send(JSON.stringify(message));
+        }
+    });
 }
-    
+
 export async function handleleaveMeeting(clients, meetings, ws) {
     const clientInfo = clients.get(ws);
     if (!clientInfo) return;
@@ -24,8 +24,8 @@ export async function handleleaveMeeting(clients, meetings, ws) {
     const meeting = meetings.get(meetingCode);
     meeting.delete(username);
     await updateUserLeaveMeeting(username, meetingCode);
-    
-    if(meeting[username] == []) {
+
+    if (meeting.size === 0) {
         await updateMeetingStatus(meetingCode, "ended");
     }
 
@@ -39,11 +39,11 @@ export async function handleleaveMeeting(clients, meetings, ws) {
 
 export async function handleJoinMeeting(clients, meetings, ws, data) {
     const { username, meetingCode } = data;
-                        
+
     // Tạo phòng mới nếu chưa tồn tại
     if (!meetings.has(meetingCode)) meetings.set(meetingCode, new Map());
     const meeting = meetings.get(meetingCode);
-    
+
     // Kiểm tra xem username đã tồn tại trong phòng chưa
     if (meeting.has(username)) return;
 
@@ -63,7 +63,7 @@ export async function handleJoinMeeting(clients, meetings, ws, data) {
         type: "meeting-info",
         participants: Array.from(meeting.keys()),
     }));
-    
+
     // Thông báo cho mọi người về người mới
     broadcastToMeeting(meetings, meetingCode, {
         type: "user-joined",
@@ -97,13 +97,13 @@ export async function handleChatMessage(clients, meetings, ws, data) {
     const { username, meetingCode } = clientInfo;
 
     broadcastToMeeting(meetings, meetingCode, {
-                            type: "chat-message",
-                            from: username,
-                            message: data.message,
-                            timestamp: Date.now(),
+        type: "chat-message",
+        from: username,
+        message: data.message,
+        timestamp: Date.now(),
     });
-    
-        
+
+
     await sendMessage({
         senderId: (await getUserByUsername(username)).id,
         meetingId: (await getMeetingByCodeMeeting(meetingCode)).id,

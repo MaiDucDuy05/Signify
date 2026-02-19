@@ -10,8 +10,6 @@ const MeetingUser = sequelize.define("MeetingUser", {
   role: { type: DataTypes.ENUM("host", "participant"), allowNull: false, defaultValue: "participant" },
   joinedAt: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
 });
-MeetingUser.belongsTo(Meeting, { foreignKey: 'meetingId', onDelete: 'CASCADE' });
-Meeting.hasMany(MeetingUser, { foreignKey: 'meetingId' });
-MeetingUser.belongsTo(User, { foreignKey: 'userId', onDelete: 'CASCADE' });
 
 export default MeetingUser;
+

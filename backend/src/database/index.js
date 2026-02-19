@@ -6,14 +6,18 @@ import Message from "../models/Message.js";
 import dotenv from "dotenv";
 dotenv.config();
 
-User.belongsToMany(Meeting, { through: MeetingUser, foreignKey: "userId", onDelete: 'CASCADE',});
+User.belongsToMany(Meeting, { through: MeetingUser, foreignKey: "userId", onDelete: 'CASCADE', });
 Meeting.belongsToMany(User, { through: MeetingUser, foreignKey: "meetingId", onDelete: 'CASCADE', });
+
+MeetingUser.belongsTo(Meeting, { foreignKey: 'meetingId', onDelete: 'CASCADE' });
+Meeting.hasMany(MeetingUser, { foreignKey: 'meetingId' });
+MeetingUser.belongsTo(User, { foreignKey: 'userId', onDelete: 'CASCADE' });
 
 Meeting.hasMany(Message, { foreignKey: "meetingId" });
 Message.belongsTo(Meeting, { foreignKey: "meetingId" });
 
-Message.belongsTo(User, { foreignKey: "senderId"});
-User.hasMany(Message, { foreignKey: "senderId"});
+Message.belongsTo(User, { foreignKey: "senderId" });
+User.hasMany(Message, { foreignKey: "senderId" });
 
 
 const initDB = async () => {
@@ -26,19 +30,5 @@ const initDB = async () => {
     }
 };
 
-const syncDB = async () => {
-    try {
-        await sequelize.sync({ alter: true });
-        console.log("✅ Models synchronized without altering.");
-    } catch (error) {
-        console.error("❌ Sync failed:", error);
-        throw error;
-    }
-};
+export { sequelize, User, Meeting, MeetingUser, Message, initDB };
 
-// Initialize the database on start only in development
-if (process.env.NODE_ENV !== "production") {
-    initDB();
-}
-
-export { sequelize, User, Meeting, MeetingUser, Message, syncDB, initDB };

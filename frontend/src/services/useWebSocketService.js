@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from "react";
 
-const WEBSOCKET_URL = "wss://ffcf-2402-800-61a7-d524-1d49-f17b-6103-d427.ngrok-free.app"
+const WEBSOCKET_URL = "ws://localhost:4000"
 // window.location.hostname === 'localhost' 
 // "ws://localhost:4000";
 // "wss://cae0-113-23-102-201.ngrok-free.app";
