@@ -8,30 +8,57 @@ import { CiCalendar } from "react-icons/ci"
 import { IoVideocamOutline } from "react-icons/io5"
 import { MdOutlineJoinFull } from "react-icons/md"
 import { BsCalendarPlus } from "react-icons/bs"
-import { LuScreenShare } from "react-icons/lu"
 import { MdHistory } from 'react-icons/md';
+import { getMeetingByUser } from "../../utils/api.js"
+import { useAuth } from "../../context/AuthContext.js"
 
 const cx = classNames.bind(styles)
 
 function DashBoard() {
+  const { user } = useAuth()
   const [time, setTime] = useState(new Date())
+  const [todayMeetings, setTodayMeetings] = useState([])
 
   useEffect(() => {
     const interval = setInterval(() => {
       setTime(new Date())
-    }, 1000) // Update every second
+    }, 1000)
     return () => clearInterval(interval)
   }, [])
 
-  // Format time
+  useEffect(() => {
+    const fetchTodayMeetings = async () => {
+      if (!user?.id) return;
+      try {
+        const response = await getMeetingByUser(user.id);
+        const meetings = response.data || [];
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+        const filtered = meetings.filter(m => m.date === todayStr);
+        setTodayMeetings(filtered);
+      } catch (err) {
+        console.error("Error fetching meetings:", err);
+      }
+    };
+    fetchTodayMeetings();
+  }, [user?.id]);
+
   const formatTime = (date) => {
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true })
   }
 
-  // Format date
   const formatDate = (date) => {
     return date.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })
   }
+
+  const formatMeetingTime = (timeStr, duration) => {
+    const [h, m] = timeStr.split(":").map(Number);
+    const start = new Date(); start.setHours(h, m, 0);
+    const end = new Date(start); end.setMinutes(end.getMinutes() + Number(duration));
+    const fmt = (d) => d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true });
+    return `${fmt(start)} - ${fmt(end)}`;
+  };
 
   return (
     <div className={cx("wrap")}>
@@ -102,38 +129,25 @@ function DashBoard() {
             </div>
 
             <div className={cx("containRightHistory")}>
-              <div className={cx("containRightHistoryItem")}>
-                <h4>Hoc Tap Truc Tuyen</h4>
-                <div className={cx("meetingDetails")}>
-                  <p>Today</p>
-                  <p>2:52 - 3:32 PM</p>
-                  <p>Host: Duy Mai</p>
+              {todayMeetings.length === 0 ? (
+                <div className={cx("containRightHistoryItem")}>
+                  <h4>No meetings today</h4>
+                  <div className={cx("meetingDetails")}>
+                    <p>Your schedule is clear!</p>
+                  </div>
                 </div>
-              </div>
-              <div className={cx("containRightHistoryItem")}>
-                <h4>Hoc Tap Truc Tuyen</h4>
-                <div className={cx("meetingDetails")}>
-                  <p>Today</p>
-                  <p>2:52 - 3:32 PM</p>
-                  <p>Host: Duy Mai</p>
-                </div>
-              </div>
-              <div className={cx("containRightHistoryItem")}>
-                <h4>Hoc Tap Truc Tuyen</h4>
-                <div className={cx("meetingDetails")}>
-                  <p>Today</p>
-                  <p>2:52 - 3:32 PM</p>
-                  <p>Host: Duy Mai</p>
-                </div>
-              </div>
-              <div className={cx("containRightHistoryItem")}>
-                <h4>Hoc Tap Truc Tuyen</h4>
-                <div className={cx("meetingDetails")}>
-                  <p>Today</p>
-                  <p>2:52 - 3:32 PM</p>
-                  <p>Host: Duy Mai</p>
-                </div>
-              </div>
+              ) : (
+                todayMeetings.map((meeting) => (
+                  <div key={meeting.id} className={cx("containRightHistoryItem")}>
+                    <h4>{meeting.description || "Meeting"}</h4>
+                    <div className={cx("meetingDetails")}>
+                      <p>Today</p>
+                      <p>{formatMeetingTime(meeting.time, meeting.duration)}</p>
+                      <p>Status: {meeting.status}</p>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
