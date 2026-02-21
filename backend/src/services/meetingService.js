@@ -3,17 +3,18 @@ import Meeting from "../models/Meeting.js";
 import MeetingUser from "../models/MeetingUser.js";
 
 export const createMeeting = async (meetingData) => {
-    
+
     const { host, ...meetingInfo } = meetingData;
 
     const meeting = await Meeting.create(meetingInfo);
     await MeetingUser.create(
-        {userId:host,
+        {
+            userId: host,
             meetingId: meeting.id,
-            role:"host"
+            role: "host"
         })
 
-    await redis.del("meetings"); 
+    await redis.del("meetings");
 
     return meeting;
 };
@@ -43,13 +44,42 @@ export const getMeetingById = async (id) => {
     return meeting;
 };
 
+export const updateMeeting = async (id, meetingData) => {
+    const meeting = await Meeting.findByPk(id);
+    if (!meeting) return null;
+
+    await meeting.update(meetingData);
+
+    // Invalidate caches
+    await redis.del(`meeting:${id}`);
+    await redis.del(`meeting:${meeting.meetingCode}`);
+    await redis.del("meetings");
+
+    return meeting;
+};
+
+export const deleteMeeting = async (id) => {
+    const meeting = await Meeting.findByPk(id);
+    if (!meeting) return null;
+
+    // Delete associated MeetingUser records first
+    await MeetingUser.destroy({ where: { meetingId: id } });
+    await meeting.destroy();
+
+    // Invalidate caches
+    await redis.del(`meeting:${id}`);
+    await redis.del(`meeting:${meeting.meetingCode}`);
+    await redis.del("meetings");
+
+    return meeting;
+};
 
 export const updateMeetingStatus = async (meetingCode, status) => {
     const meeting = await Meeting.findOne({ where: { meetingCode } });
     if (!meeting) return null;
     meeting.status = status;
     await meeting.save();
-    await redis.del(`meeting:${meetingCode}`); 
+    await redis.del(`meeting:${meetingCode}`);
     return meeting;
 }
 
@@ -73,21 +103,21 @@ export const getMeetingByUser = async (userId) => {
         return JSON.parse(cachedMeeting);
     }
 
-     try{
+    try {
         const meetings = await Meeting.findAll({
-        include: [
-            {
-                model: MeetingUser,
-                where: { userId}, 
-                attributes: [], 
-            },
-        ],
-    });
-    if (!meetings.length) return null;
-    await redis.set(`meeting:${userId}`, JSON.stringify(meetings), "EX", 300);
-    return meetings;
+            include: [
+                {
+                    model: MeetingUser,
+                    where: { userId },
+                    attributes: [],
+                },
+            ],
+        });
+        if (!meetings.length) return [];
+        await redis.set(`meeting:${userId}`, JSON.stringify(meetings), "EX", 300);
+        return meetings;
 
-    } catch(err) {
+    } catch (err) {
         console.log(err)
     }
 };
