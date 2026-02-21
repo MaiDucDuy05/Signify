@@ -34,7 +34,7 @@
     align-content: center;
     display: flex;
     margin-left: 20px;
-    
+
     input {
         background-color: #C8CCD0;
         height: 40px;
@@ -42,23 +42,23 @@
         border-radius: 8px;
         padding: 0px 10px 0px 40px;
         color: #333;
-        
+
         @media (max-width: 1024px) {
             width: 250px;
         }
-        
+
         @media (max-width: 768px) {
             display: none;
         }
     }
-    
+
     i {
         font-size: 2.4rem;
         position: relative;
         top: 0;
         left: 30px;
         cursor: pointer;
-        
+
         @media (max-width: 768px) {
             display: none;
         }
@@ -73,7 +73,7 @@
     height: 60px;
     line-height: 60px;
     align-items: center;
-    
+
     @media (max-width: 480px) {
         font-size: 2.4rem;
     }
@@ -81,7 +81,7 @@
 
 .videoIcon {
     display: flex;
-    justify-content: center; 
+    justify-content: center;
     align-items: center;
     margin-right: 5px;
 }
@@ -89,7 +89,7 @@
 /* Desktop Navigation */
 .desktopNav {
     display: flex;
-    
+
     @media (max-width: 768px) {
         display: none;
     }
@@ -105,7 +105,7 @@
     cursor: pointer;
     justify-content: flex-end;
     align-items: center;
-    
+
     img {
         height: 30px;
         width: 30px;
@@ -126,13 +126,13 @@
     list-style: none;
     display: flex;
     margin-right: 20px;
-    
+
     i {
         font-size: 3rem;
         height: 30px;
         cursor: pointer;
     }
-    
+
     li {
         display: flex;
         flex-direction: column;
@@ -155,36 +155,50 @@
 }
 
 .logOut {
-    display: none;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     position: absolute;
-    height: 40px;
+    height: 44px;
     width: 180px;
     right: 0;
     top: 50px;
-    font-weight: 400;
-    color: rgb(189, 5, 5);
-    font-size: 1.8rem;
-    line-height: 40px;
+    font-weight: 500;
+    color: #ef4444;
+    /* matching --danger */
+    font-size: 1.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background-color: #fff;
-    border-radius: 10px;
-    box-shadow: 0 0 3px #333;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     cursor: pointer;
-    
+    border: 1px solid #fee2e2;
+    z-index: 100;
+
     i {
         font-weight: 500;
-        font-size: 2rem;
-        position: relative;
-        top: 4px;
+        font-size: 1.8rem;
         margin-left: 8px;
+    }
+
+    &:hover {
+        background-color: #fef2f2;
     }
 }
 
 .appear {
-    display: block;
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
 }
 
 .hidden {
-    display: none;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
 }
 
 /* Mobile Menu Toggle */
@@ -192,7 +206,7 @@
     display: none;
     font-size: 2.4rem;
     cursor: pointer;
-    
+
     @media (max-width: 768px) {
         display: block;
     }
@@ -212,7 +226,7 @@
     height: 0;
     overflow: hidden;
     transition: height 0.3s ease;
-    
+
     @media (max-width: 768px) {
         display: flex;
     }
@@ -237,14 +251,14 @@
     position: relative;
     padding: 10px;
     border-top: 1px solid #eee;
-    
+
     img {
         height: 40px;
         width: 40px;
         border-radius: 50%;
         margin-right: 15px;
     }
-    
+
     .mobileUserName {
         font-weight: 500;
         font-size: 1.8rem;
@@ -253,14 +267,14 @@
 
 .mobileNavBar {
     margin-bottom: 10px;
-    
+
     li {
         display: flex;
         align-items: center;
         padding: 15px 10px;
         font-size: 1.8rem;
         border-bottom: 1px solid #eee;
-        
+
         i {
             font-size: 2.2rem;
             margin-right: 15px;
@@ -268,7 +282,8 @@
     }
 }
 
-.mobileLogIn, .mobileSignUp {
+.mobileLogIn,
+.mobileSignUp {
     display: block;
     text-align: center;
     padding: 12px;
@@ -299,15 +314,14 @@
     border-radius: 4px;
     font-weight: 500;
     font-size: 1.6rem;
-    
+
     i {
         font-size: 1.8rem;
         margin-right: 5px;
     }
-    
+
     &.appear {
         display: flex;
         align-items: center;
     }
 }
-

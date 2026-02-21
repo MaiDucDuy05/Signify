@@ -1,18 +1,35 @@
 @import 'normalize.css';
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-    --primary: #fe2c55;
+    // Colors
+    --primary: #1a73e8;
+    --primary-hover: #1557b0;
+    --primary-light: #e0f2fe;
     --black: #000;
     --white: #fff;
-    // --text-color: #161823;
-    --text-color:#0369a1;
+    --text-color: #333;
+    --text-muted: #666;
+    --bg-light: #f8f9fa;
+    --bg-blue-light: #e0f2fe;
+    --danger: #ef4444;
 
-    --font-family: 'ProximaNova', sans-serif;
+    // Typography
+    --font-family: 'ProximaNova', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
-    // Default layout
+    // layout
     --default-layout-header-height: 60px;
     --default-layout-width: 100%;
     --default-layout-horizontal-spacer: 0px;
+
+    // Tokens
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 * {
