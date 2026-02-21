@@ -1,70 +1,82 @@
-# Getting Started with Create React App
+# Signify — Video Conferencing Application
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A real-time video conferencing app built with React, Node.js, WebSocket, and WebRTC.
 
-## Available Scripts
+## Tech Stack
 
-In the project directory, you can run:
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | React 19, Ant Design, React Router, SCSS Modules |
+| **Backend** | Node.js, Express, Sequelize ORM |
+| **Database** | PostgreSQL |
+| **Cache** | Redis |
+| **Real-time** | WebSocket (`ws`), WebRTC |
+| **Auth** | JWT with Redis token blacklisting |
 
-### `npm start`
+## Getting Started
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### Prerequisites
+- Node.js 18+
+- PostgreSQL
+- Redis (use `docker-compose up -d` in `/backend` for Redis)
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### Backend Setup
+```bash
+cd backend
+npm install
+# Configure .env (DB credentials, JWT_SECRET, Redis, PORT)
+npm run dev
+```
 
-### `npm test`
+### Frontend Setup
+```bash
+cd frontend
+npm install
+npm start
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+The frontend runs on `http://localhost:3000` and the backend on `http://localhost:4000`.
 
-### `npm run build`
+## Project Structure
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```
+├── backend/
+│   ├── src/
+│   │   ├── config/          # Redis configuration
+│   │   ├── controllers/     # Route handlers
+│   │   ├── database/        # Sequelize init & associations
+│   │   ├── middlewares/      # Error middleware
+│   │   ├── models/          # User, Meeting, MeetingUser, Message
+│   │   ├── routes/          # API route definitions
+│   │   ├── services/        # Business logic & Redis caching
+│   │   ├── websocket/       # WebSocket handlers
+│   │   ├── app.js           # Express app config
+│   │   └── server.js        # Server entry point
+│   └── middlewares/         # Auth middleware (JWT + blacklist)
+│
+├── frontend/
+│   ├── src/
+│   │   ├── context/         # AuthContext (login/logout state)
+│   │   ├── layouts/         # Header, Sidebar
+│   │   ├── pages/           # Dashboard, Meeting, Schedule, etc.
+│   │   ├── routes/          # React Router config
+│   │   └── utils/           # API client, auth token helpers
+│   └── public/
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## API Endpoints
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/auth/signup` | No | Register |
+| POST | `/api/auth/login` | No | Login |
+| POST | `/api/auth/logout` | Yes | Logout (blacklist token) |
+| GET | `/api/meetings` | Yes | List all meetings |
+| POST | `/api/meetings` | Yes | Create meeting |
+| GET | `/api/meetings/:id` | Yes | Get meeting by ID |
+| PUT | `/api/meetings/:id` | Yes | Update meeting |
+| DELETE | `/api/meetings/:id` | Yes | Delete meeting |
+| GET | `/api/meetings/code/:code` | Yes | Get by meeting code |
+| GET | `/api/meetings/user/:userId` | Yes | Get user's meetings |
+| GET | `/api/messages/meeting/:id` | Yes | Get meeting messages |
+| POST | `/api/messages` | Yes | Send message |
