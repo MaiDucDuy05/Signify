@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { saveAuthToken, getAuthToken, removeAuthToken } from "../utils/authToken.js";
+import { logout as logoutAPI } from "../utils/api.js";
 
 const AuthContext = createContext(null);
 
@@ -21,14 +22,18 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     const login = (userData) => {
-        saveAuthToken(JSON.stringify(userData));
+        saveAuthToken(userData);
         setUser(userData);
     };
 
-    const logout = () => {
+    const logout = async () => {
+        try {
+            await logoutAPI();
+        } catch (error) {
+            console.error("Logout API error:", error);
+        }
         removeAuthToken();
         setUser(null);
-
     };
 
     return (
@@ -39,4 +44,3 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => useContext(AuthContext);
-

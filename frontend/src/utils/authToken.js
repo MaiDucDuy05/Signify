@@ -1,6 +1,6 @@
 // Hàm lưu token vào cookies
-export const saveAuthToken = (token) => {
-    document.cookie = `authToken=${encodeURIComponent(JSON.stringify(token))}; path=/; max-age=86400; Secure; SameSite=Strict`;
+export const saveAuthToken = (data) => {
+    document.cookie = `authToken=${encodeURIComponent(JSON.stringify(data))}; path=/; max-age=86400; Secure; SameSite=Strict`;
 };
 
 // Hàm lấy token từ cookies
@@ -10,7 +10,8 @@ export const getAuthToken = () => {
         for (let cookie of cookies) {
             let [name, value] = cookie.split("=");
             if (name === "authToken") {
-                return JSON.parse(decodeURIComponent(value));
+                const decoded = decodeURIComponent(value);
+                return JSON.parse(decoded);
             }
         }
         return null;

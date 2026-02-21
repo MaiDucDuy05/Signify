@@ -5,7 +5,7 @@ import { useEffect, useState } from "react"
 import styles from "./Schedule.module.scss"
 import { FaChevronLeft, FaChevronRight, FaPlus, FaSearch } from "react-icons/fa"
 import { IoMdClose } from "react-icons/io"
-import { getMeetingByUser } from "../../utils/api.js"
+import { getMeetingByUser, createMeeting, updateMeeting as updateMeetingAPI, deleteMeeting as deleteMeetingAPI } from "../../utils/api.js"
 import { useAuth } from "../../context/AuthContext.js";
 import {
   format,
@@ -29,6 +29,8 @@ function Schedule() {
   const [view, setView] = useState("week") // 'day', 'week', 'month'
   const [showNewMeetingForm, setShowNewMeetingForm] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [isEditing, setIsEditing] = useState(false)
+  const [editingMeetingId, setEditingMeetingId] = useState(null)
 
   const [meetings, setMeetings] = useState([]);
   const [newMeeting, setNewMeeting] = useState({
@@ -36,43 +38,57 @@ function Schedule() {
     date: "",
     time: "",
     duration: 60,
-    host: "Duy Mai",
-    codeMeeting: "",
+    host: user?.name || "",
+    meetingCode: "",
     description: "",
   })
   const [selectedMeeting, setSelectedMeeting] = useState(null)
 
+  const generateMeetingCode = () => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let code = "";
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < 3; j++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      if (i < 2) code += "-";
+    }
+    return code;
+  };
+
+  const fetchMeetings = async () => {
+    try {
+      const response = await getMeetingByUser(user?.id);
+      const meetingsData = response.data;
+      const newMeetings = meetingsData.map((m) => {
+        const [year, month, day] = m.date.split("-").map(Number);
+        const [hours, minutes] = m.time.split(":").map(Number);
+        const startDate = new Date(year, month - 1, day, hours, minutes);
+        const endDate = new Date(startDate);
+        endDate.setMinutes(endDate.getMinutes() + Number.parseInt(m.duration));
+        return {
+          id: m.id,
+          title: m.description,
+          date: startDate,
+          endDate: endDate,
+          status: m.status,
+          codeMeeting: m.meetingCode,
+          description: m.description,
+          duration: m.duration,
+          time: m.time,
+          rawDate: m.date,
+        };
+      });
+      setMeetings(newMeetings);
+    } catch (err) {
+      console.error("Error fetching meetings:", err);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await getMeetingByUser(user?.id);
-        const meetingsData = response.data;
-        const newMeetings = meetingsData.map((newMeeting, index) => {
-          const [year, month, day] = newMeeting.date.split("-").map(Number);
-          const [hours, minutes] = newMeeting.time.split(":").map(Number);
-          const startDate = new Date(year, month - 1, day, hours, minutes);
-          const endDate = new Date(startDate);
-          endDate.setMinutes(endDate.getMinutes() + Number.parseInt(newMeeting.duration));
-          return {
-            id: newMeeting.id,
-            title: newMeeting.title,
-            date: startDate,
-            endDate: endDate,
-            status: newMeeting.status,
-            codeMeeting: newMeeting.meetingCode,
-            description: newMeeting.description,
-          };
-        });
-
-        setMeetings(newMeetings);
-
-      } catch (err) {
-        console.error("Lỗi khi lấy dữ liệu cuộc họp:", err);
-      }
-    };
-
-    fetchData();
+    if (user?.id) {
+      fetchMeetings();
+    }
   }, [user?.id]);
 
   // Format date for display
@@ -125,17 +141,76 @@ function Schedule() {
     })
   }
 
-  // Handle form submission
-  const handleSubmit = (e) => {
+  // Handle form submission (Create or Update)
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    setShowNewMeetingForm(false)
+    try {
+      if (isEditing && editingMeetingId) {
+        await updateMeetingAPI(editingMeetingId, {
+          description: newMeeting.description,
+          date: newMeeting.date,
+          time: newMeeting.time,
+          duration: newMeeting.duration,
+          meetingCode: newMeeting.meetingCode,
+        });
+      } else {
+        const meetingCode = newMeeting.meetingCode || generateMeetingCode();
+        await createMeeting({
+          host: user?.id,
+          description: newMeeting.description || newMeeting.title,
+          date: newMeeting.date,
+          time: newMeeting.time,
+          duration: newMeeting.duration,
+          meetingCode: meetingCode,
+          status: "scheduled",
+        });
+      }
+      setShowNewMeetingForm(false);
+      setIsEditing(false);
+      setEditingMeetingId(null);
+      setNewMeeting({ title: "", date: "", time: "", duration: 60, host: user?.name || "", meetingCode: "", description: "" });
+      await fetchMeetings();
+    } catch (err) {
+      console.error("Error saving meeting:", err);
+      alert("Failed to save meeting. Please try again.");
+    }
   }
+
+  // Handle edit button
+  const handleEdit = (meeting) => {
+    setIsEditing(true);
+    setEditingMeetingId(meeting.id);
+    setNewMeeting({
+      title: meeting.title || "",
+      date: meeting.rawDate || "",
+      time: meeting.time || "",
+      duration: meeting.duration || 60,
+      host: user?.name || "",
+      meetingCode: meeting.codeMeeting || "",
+      description: meeting.description || "",
+    });
+    setSelectedMeeting(null);
+    setShowNewMeetingForm(true);
+  };
+
+  // Handle delete button
+  const handleDelete = async (meetingId) => {
+    if (!window.confirm("Are you sure you want to cancel this meeting?")) return;
+    try {
+      await deleteMeetingAPI(meetingId);
+      setSelectedMeeting(null);
+      await fetchMeetings();
+    } catch (err) {
+      console.error("Error deleting meeting:", err);
+      alert("Failed to delete meeting. Please try again.");
+    }
+  };
 
   // Filter meetings based on search query
   const filteredMeetings = meetings.filter(
     (meeting) =>
-      // meeting.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      meeting.description.toLowerCase().includes(searchQuery.toLowerCase())
+      (meeting.title && meeting.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (meeting.description && meeting.description.toLowerCase().includes(searchQuery.toLowerCase()))
   )
 
   // Get days for week view
@@ -361,8 +436,8 @@ function Schedule() {
         <div className={cx("modal")}>
           <div className={cx("modalContent")}>
             <div className={cx("modalHeader")}>
-              <h2>Schedule New Meeting</h2>
-              <button className={cx("closeButton")} onClick={() => setShowNewMeetingForm(false)}>
+              <h2>{isEditing ? "Edit Meeting" : "Schedule New Meeting"}</h2>
+              <button className={cx("closeButton")} onClick={() => { setShowNewMeetingForm(false); setIsEditing(false); setEditingMeetingId(null); }}>
                 <IoMdClose />
               </button>
             </div>
@@ -375,7 +450,6 @@ function Schedule() {
                   name="title"
                   value={newMeeting.title}
                   onChange={handleInputChange}
-                  required
                   placeholder="Enter meeting title"
                 />
               </div>
@@ -421,26 +495,14 @@ function Schedule() {
               </div>
 
               <div className={cx("formGroup")}>
-                <label htmlFor="host">Host</label>
+                <label htmlFor="meetingCode">Meeting Code (auto-generated if empty)</label>
                 <input
                   type="text"
-                  id="host"
-                  name="host"
-                  value={newMeeting.host}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-
-              <div className={cx("formGroup")}>
-                <label htmlFor="codeMeeting">Code Meeting (comma separated)</label>
-                <input
-                  type="text"
-                  id="codeMeeting"
-                  name="codeMeeting"
+                  id="meetingCode"
+                  name="meetingCode"
                   value={newMeeting.meetingCode}
                   onChange={handleInputChange}
-                  placeholder="Code..."
+                  placeholder="e.g. ABC-DEF-GHI"
                 />
               </div>
 
@@ -457,11 +519,11 @@ function Schedule() {
               </div>
 
               <div className={cx("formActions")}>
-                <button type="button" className={cx("cancelButton")} onClick={() => setShowNewMeetingForm(false)}>
+                <button type="button" className={cx("cancelButton")} onClick={() => { setShowNewMeetingForm(false); setIsEditing(false); setEditingMeetingId(null); }}>
                   Cancel
                 </button>
                 <button type="submit" className={cx("submitButton")}>
-                  Schedule Meeting
+                  {isEditing ? "Update Meeting" : "Schedule Meeting"}
                 </button>
               </div>
             </form>
@@ -509,8 +571,8 @@ function Schedule() {
 
               <div className={cx("meetingActions")}>
                 <Link to={`/waiting-room/?room=${selectedMeeting.codeMeeting}`} className={cx("actionButton", "joinButton")}>Join Meeting</Link>
-                <button className={cx("actionButton", "editButton")}>Edit</button>
-                <button className={cx("actionButton", "deleteButton")}>Cancel Meeting</button>
+                <button className={cx("actionButton", "editButton")} onClick={() => handleEdit(selectedMeeting)}>Edit</button>
+                <button className={cx("actionButton", "deleteButton")} onClick={() => handleDelete(selectedMeeting.id)}>Cancel Meeting</button>
               </div>
             </div>
           </div>

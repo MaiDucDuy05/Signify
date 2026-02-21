@@ -8,8 +8,8 @@ const API = axios.create({
 
 
 API.interceptors.request.use(async (config) => {
-  const jsonString = await getAuthToken();
-  const token = JSON.parse(jsonString)?.token
+  const authData = getAuthToken();
+  const token = authData?.token;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -36,6 +36,8 @@ export const sendMessage = (messageData) => API.post("/messages", messageData);
 // API Xác thực (Auth)
 export const signup = (userData) => API.post("/auth/signup", userData);
 export const login = (credentials) => API.post("/auth/login", credentials);
+export const logout = () => API.post("/auth/logout");
 
 export default API;
+
 
